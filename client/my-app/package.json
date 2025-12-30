@@ -10,13 +10,17 @@
   },
   "dependencies": {
     "@react-three/fiber": "^9.0.0-alpha.8",
+    "@tabler/icons-react": "^3.36.0",
+    "@types/leaflet": "^1.9.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.562.0",
     "motion": "^12.23.26",
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-leaflet": "^5.0.0",
     "tailwind-merge": "^3.4.0",
     "three": "^0.182.0"
   },
