@@ -1,12 +1,7 @@
 "use client";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { useRouter } from "next/navigation";
-
-enum UserRole {
-  Victim = "victim",
-  Rescuer = "rescuer",
-  commander = "commander",
-}
+import { UserRole } from "@/lib/types";
 
 export default function Home() {
   const router = useRouter();
