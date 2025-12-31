@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Parali Platform",
-  description: "Smart Parali Management System",
+  title: "COMMANDR - Disaster Management Platform",
+  description: "Empowering communities with real-time alerts, resources, and emergency response coordination.",
 };
 
 export default function RootLayout({
