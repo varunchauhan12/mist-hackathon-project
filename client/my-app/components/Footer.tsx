@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Phone, Mail, MapPin, Facebook, Twitter, Instagram } from "lucide-react";
+import {Phone, Mail, MapPin, Facebook, Twitter, Instagram } from "lucide-react";
 import Image  from "next/image";
 
 export default function DisasterFooter() {
