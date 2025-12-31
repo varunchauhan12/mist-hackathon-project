@@ -50,14 +50,14 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#0b0f14] px-4">
       <motion.div
-        initial={{ opacity: 0, y: 40 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl"
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl"
       >
         {/* HEADER */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-extrabold text-[#e5e7eb] mb-2">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-[#e5e7eb] mb-1">
             Create COMMANDR Account
           </h1>
           <p className="text-[#9ca3af] text-sm">
@@ -66,42 +66,37 @@ export default function SignupPage() {
         </div>
 
         {/* FORM */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {[
             { name: "fullName", type: "text", placeholder: "Full Name" },
             { name: "email", type: "email", placeholder: "Email Address" },
             { name: "password", type: "password", placeholder: "Password" },
           ].map((input) => (
-            <div key={input.name}>
-              <input
-                type={input.type}
-                name={input.name}
-                placeholder={input.placeholder}
-                value={(formData as any)[input.name]}
-                onChange={handleChange}
-                onFocus={() => setFocusedField(input.name)}
-                onBlur={() => setFocusedField("")}
-                required
-                className={`w-full px-5 py-4 rounded-2xl bg-[#0b0f14]/80
-                  border transition-all text-[#e5e7eb] placeholder-[#9ca3af]
-                  ${
-                    focusedField === input.name
-                      ? "border-[#38bdf8] ring-2 ring-[#38bdf8]/30"
-                      : "border-white/10 hover:border-white/20"
-                  }`}
-              />
-            </div>
+            <input
+              key={input.name}
+              type={input.type}
+              name={input.name}
+              placeholder={input.placeholder}
+              value={(formData as any)[input.name]}
+              onChange={handleChange}
+              onFocus={() => setFocusedField(input.name)}
+              onBlur={() => setFocusedField("")}
+              required
+              className={`w-full px-4 py-3 rounded-xl bg-[#0b0f14]/80 text-[#e5e7eb] placeholder-[#9ca3af] border transition-all ${
+                focusedField === input.name
+                  ? "border-[#38bdf8] ring-2 ring-[#38bdf8]/30"
+                  : "border-white/10 hover:border-white/20"
+              }`}
+            />
           ))}
 
-          {/* ROLE SELECT */}
+          {/* ROLE */}
           <select
             name="role"
             value={formData.role}
             onChange={handleChange}
             required
-            className="w-full px-5 py-4 rounded-2xl bg-[#0b0f14]/80
-              border border-white/10 text-[#e5e7eb]
-              focus:border-[#38bdf8] transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-[#0b0f14]/80 text-[#e5e7eb] border border-white/10 focus:border-[#38bdf8] transition-all"
           >
             <option value="">Select Role</option>
             <option value="victim">Victim / Citizen</option>
@@ -111,9 +106,9 @@ export default function SignupPage() {
 
           {/* SUBMIT */}
           <motion.button
-            whileTap={{ scale: 0.96 }}
+            whileTap={{ scale: 0.97 }}
             disabled={loading}
-            className={`w-full py-4 rounded-2xl font-semibold text-lg transition-all ${
+            className={`w-full py-3 rounded-xl font-semibold transition-all ${
               loading
                 ? "bg-white/10 text-[#9ca3af] cursor-not-allowed"
                 : "bg-[#38bdf8] text-[#0b0f14] hover:bg-[#60a5fa] hover:shadow-lg"
@@ -124,20 +119,20 @@ export default function SignupPage() {
 
           {/* ERROR */}
           {error && (
-            <div className="text-sm text-[#ef4444] text-center bg-[#ef4444]/10 border border-[#ef4444]/30 p-3 rounded-xl">
+            <div className="text-sm text-[#ef4444] text-center bg-[#ef4444]/10 border border-[#ef4444]/30 p-2 rounded-lg">
               {error}
             </div>
           )}
         </form>
 
-        {/* LOGIN LINK */}
-        <div className="text-center mt-8 border-t border-white/10 pt-6">
-          <p className="text-[#9ca3af] text-sm mb-2">
+        {/* LOGIN */}
+        <div className="text-center mt-6 border-t border-white/10 pt-4">
+          <p className="text-[#9ca3af] text-sm mb-1">
             Already have an account?
           </p>
           <button
             onClick={() => router.push("/auth/login")}
-            className="text-[#38bdf8] font-semibold hover:underline"
+            className="text-[#38bdf8] text-sm font-medium hover:underline"
           >
             Login to COMMANDR
           </button>
@@ -146,5 +141,3 @@ export default function SignupPage() {
     </main>
   );
 }
-
-

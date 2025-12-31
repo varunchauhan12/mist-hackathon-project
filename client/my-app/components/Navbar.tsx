@@ -13,7 +13,7 @@ export default function DisasterNavbar() {
     { name: "Home", path: "/" },
     { name: "About", path: "/about"},
     { name: "Dashboard", path: "/dashboard",critical: true },
-    { name: "User Login", path: "/auth/register" },
+    { name: "User Login", path: "/auth/login" },
   ];
 
   const moreLinks = [
