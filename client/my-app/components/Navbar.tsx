@@ -12,7 +12,7 @@ export default function DisasterNavbar() {
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about"},
-    { name: "Dashboard", path: "/dashboard",critical: true },
+    { name: "Dashboard", path: "/victim/dashboard",critical: true },
     { name: "User Login", path: "/auth/login" },
   ];
 
