@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import {
   AlertTriangle,
@@ -13,6 +14,8 @@ import {
   Plus,
   Stethoscope,
 } from "lucide-react";
+
+import Sidebar from "@/components/Sidebar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -28,6 +31,7 @@ import { ToggleGroup } from "@radix-ui/react-toggle-group";
 import { ToggleGroupItem } from "@/components/ui/toggle-group";
 import Link from "next/link";
 
+/* ---------- Types ---------- */
 type EmergencyType = "flood" | "fire" | "trapped" | "medical" | "other";
 type UrgencyLevel = "critical" | "high" | "medium";
 
@@ -40,17 +44,18 @@ interface ReportFormData {
   photos: File[];
 }
 
+/* ---------- Emergency Types ---------- */
 const emergencyTypes = [
-  { id: "flood", label: "Flood", icon: Droplets, color: "text-blue-500" },
-  { id: "fire", label: "Fire", icon: Flame, color: "text-orange-500" },
+  { id: "flood", label: "Flood", icon: Droplets, color: "text-blue-400" },
+  { id: "fire", label: "Fire", icon: Flame, color: "text-orange-400" },
   {
     id: "trapped",
     label: "Trapped",
     icon: PersonStanding,
-    color: "text-yellow-600",
+    color: "text-yellow-400",
   },
-  { id: "medical", label: "Medical", icon: Stethoscope, color: "text-red-500" },
-  { id: "other", label: "Other", icon: AlertTriangle, color: "text-gray-500" },
+  { id: "medical", label: "Medical", icon: Stethoscope, color: "text-red-400" },
+  { id: "other", label: "Other", icon: AlertTriangle, color: "text-gray-300" },
 ];
 
 const VictimReportPage = () => {
@@ -63,7 +68,7 @@ const VictimReportPage = () => {
     photos: [],
   });
 
-  const [step, setstep] = useState(1);
+  const [step, setStep] = useState(1);
   const [isLocating, setIsLocating] = useState(false);
 
   const detectLocation = () => {
@@ -79,122 +84,106 @@ const VictimReportPage = () => {
         }));
         setIsLocating(false);
       },
-      (error) => {
-        console.error("Location Error:", error);
-        setIsLocating(false);
-      }
+      () => setIsLocating(false)
     );
   };
 
-  const handleSubmit = () => {
-    console.log("Submitting Report:", formData);
-  };
-
-  const handleNextStep = () => {
-    if (step < 3) setstep(step + 1);
-  };
-
-  const handleBackStep = () => {
-    if (step > 1) setstep(step - 1);
-  };
-
   return (
-    <div>
-      <div className="min-h-screen bg-gradient-to-b from-red-50 to-white p-4 pb-24">
-        {/* {header fil} */}
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-red-600 flex items-center justify-center gap-2 ">
-            <AlertTriangle className="w-6 h-6" />
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950">
+      <Sidebar role="victim" />
+
+      <main className="flex-1 p-6 md:p-10 max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-10 text-center">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-red-400 flex items-center justify-center gap-3">
+            <AlertTriangle className="w-8 h-8" />
             Report Emergency
           </h1>
-          <p className="text-gray-600 text-sm mt-1">
-            Step {step} of 3 - Help is on the way
-          </p>
+          <p className="text-gray-300 text-lg mt-2">Step {step} of 3</p>
         </div>
 
-        {/* progress bar */}
-        <Progress value={(step / 3) * 100} className="mb-6 h-2" />
+        <Progress value={(step / 3) * 100} className="mb-10 h-3 bg-white/20" />
 
+        {/* ---------------- STEP 1 ---------------- */}
         {step === 1 && (
-          <div className="space-y-4">
-            <Link href={"/victim/dashboard"}>
-              <Button
-                variant={"ghost"}
-                onClick={handleBackStep}
-                className="ml-auto left-0"
-              >
-                <ArrowLeft /> Back
-              </Button>
-            </Link>
-            <Card>
-              <CardHeader className="flex">
-                <CardTitle className="text-lg font-semibold">
-                  What type of emergency?
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 ">
-                  {emergencyTypes.map((type) => {
-                    const Icon = type.icon;
-                    const isSelected = formData.emergencyType === type.id;
-                    return (
-                      <button
-                        key={type.id}
-                        onClick={() =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            emergencyType: type.id as EmergencyType,
-                          }))
-                        }
-                        className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
-                          isSelected
-                            ? "border-red-500 bg-red-50 scale-105 shadow-md"
-                            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+          <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-2xl text-white">
+                Select Emergency Type
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {emergencyTypes.map((type) => {
+                  const Icon = type.icon;
+                  const active = formData.emergencyType === type.id;
+
+                  return (
+                    <button
+                      key={type.id}
+                      onClick={() =>
+                        setFormData((p) => ({
+                          ...p,
+                          emergencyType: type.id as EmergencyType,
+                        }))
+                      }
+                      className={`p-6 rounded-2xl border transition-all
+                        ${
+                          active
+                            ? "border-red-500 bg-red-500/20 scale-105"
+                            : "border-white/20 bg-white/5 hover:bg-white/10"
                         }`}
-                      >
-                        <Icon className={`w-8 h-8 ${type.color}`} />
-                        <span className="mt-2 text-sm font-medium text-gray-700">
-                          {type.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  variant={"ghost"}
-                  onClick={handleNextStep}
-                  className="ml-auto right-0"
-                >
-                  <ArrowRight /> Next
+                    >
+                      <Icon className={`w-10 h-10 mx-auto ${type.color}`} />
+                      <p className="mt-3 text-lg font-semibold text-white">
+                        {type.label}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+
+            <CardFooter className="flex justify-between">
+              <Link href="/victim/dashboard">
+                <Button className="text-gray-300" variant="ghost">
+                  <ArrowLeft /> Back
                 </Button>
-              </CardFooter>
-            </Card>
-          </div>
+              </Link>
+              <Button
+                className="bg-red-500 hover:bg-red-600 text-white px-8 text-lg"
+                onClick={() => setStep(2)}
+              >
+                Next <ArrowRight />
+              </Button>
+            </CardFooter>
+          </Card>
         )}
 
+        {/* ---------------- STEP 2 ---------------- */}
         {step === 2 && (
-          <div className="space-y-4">
+          <div className="space-y-8">
             <Button
-              variant={"ghost"}
-              onClick={handleBackStep}
-              className="ml-auto left-0"
+              variant="ghost"
+              className="text-gray-300"
+              onClick={() => setStep(1)}
             >
               <ArrowLeft /> Back
             </Button>
+
             {/* Location */}
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <MapPin className="w-5 h-5" /> Your Location
+                <CardTitle className="text-xl text-white flex items-center gap-2">
+                  <MapPin /> Location
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {formData.location ? (
-                  <Alert className="bg-green-50 border-green-200">
-                    <AlertDescription className="text-green-700">
-                      📍 Location detected: {formData.location.lat.toFixed(4)},{" "}
+                  <Alert className="bg-green-500/20 border-green-400">
+                    <AlertDescription className="text-green-200 text-lg">
+                      Latitude: {formData.location.lat.toFixed(4)} | Longitude:{" "}
                       {formData.location.lng.toFixed(4)}
                     </AlertDescription>
                   </Alert>
@@ -202,185 +191,163 @@ const VictimReportPage = () => {
                   <Button
                     onClick={detectLocation}
                     disabled={isLocating}
-                    className="w-full"
-                    variant="outline"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-6"
                   >
-                    {isLocating ? "Detecting..." : "📍 Detect My Location"}
+                    {isLocating
+                      ? "Detecting Location..."
+                      : "Detect My Location"}
                   </Button>
                 )}
               </CardContent>
             </Card>
 
             {/* Description */}
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
               <CardHeader>
-                <CardTitle className="text-lg">
-                  Describe the situation
+                <CardTitle className="text-xl text-white">
+                  Situation Description
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <Textarea
-                  placeholder="E.g., Water rising fast, stuck on 2nd floor..."
+                  rows={5}
+                  className="text-white text-lg placeholder:text-gray-400"
                   value={formData.description}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
+                    setFormData((p) => ({ ...p, description: e.target.value }))
                   }
-                  rows={4}
                 />
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
               <CardHeader>
-                <CardTitle className="text-lg">People needing help</CardTitle>
+                <CardTitle className="text-xl text-white">
+                  People Needing Help
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-center gap-6">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        peopleCount: Math.max(1, prev.peopleCount - 1),
-                      }))
-                    }
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <span className="text-4xl font-bold">
-                    {formData.peopleCount}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        peopleCount: prev.peopleCount + 1,
-                      }))
-                    }
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
+              <CardContent className="flex items-center justify-center gap-10">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      peopleCount: Math.max(1, prev.peopleCount - 1),
+                    }))
+                  }
+                >
+                  <Minus />
+                </Button>
+
+                <span className="text-5xl font-bold text-white">
+                  {formData.peopleCount}
+                </span>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      peopleCount: prev.peopleCount + 1,
+                    }))
+                  }
+                >
+                  <Plus />
+                </Button>
               </CardContent>
             </Card>
-            <div className="flex gap-2">
+
+            <div className="flex justify-end">
               <Button
-                variant={"ghost"}
-                onClick={handleNextStep}
-                className="ml-auto"
+                className="bg-red-500 hover:bg-red-600 text-white px-8 text-lg"
+                onClick={() => setStep(3)}
               >
-                <ArrowRight /> Next
+                Next <ArrowRight />
               </Button>
             </div>
           </div>
         )}
 
+        {/* ---------------- STEP 3 ---------------- */}
         {step === 3 && (
-          <div className="space-y-4">
-            {/* Photo Upload */}
-            <Card>
+          <div className="space-y-8">
+            <Button
+              variant="ghost"
+              className="text-gray-300"
+              onClick={() => setStep(2)}
+            >
+              <ArrowLeft /> Back
+            </Button>
+
+            <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Camera className="w-5 h-5" /> Add Photo (Optional)
+                <CardTitle className="text-xl text-white flex items-center gap-2">
+                  <Camera /> Upload Photo (Optional)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50">
-                  <Camera className="w-8 h-8 text-gray-400" />
-                  <span className="text-sm text-gray-500 mt-2">
-                    Tap to upload
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files) {
-                        setFormData((prev) => ({
-                          ...prev,
-                          photos: [
-                            ...prev.photos,
-                            ...Array.from(e.target.files!),
-                          ],
-                        }));
-                      }
-                    }}
-                  />
+                <label className="h-36 flex flex-col items-center justify-center border-2 border-dashed border-white/30 rounded-xl cursor-pointer hover:bg-white/10">
+                  <Camera className="w-10 h-10 text-gray-300" />
+                  <input type="file" className="hidden" />
                 </label>
-                {formData.photos.length > 0 && (
-                  <p className="text-sm text-green-600 mt-2">
-                    ✓ {formData.photos.length} photo(s) added
-                  </p>
-                )}
               </CardContent>
             </Card>
 
-            {/* Urgency Level */}
-            <Card>
-              <CardHeader className="flex">
-                <CardTitle className="text-lg">Urgency Level</CardTitle>
+            <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
+              <CardHeader>
+                <CardTitle className="text-xl text-white">
+                  Urgency Level
+                </CardTitle>
               </CardHeader>
 
               <CardContent>
                 <ToggleGroup
                   type="single"
                   value={formData.urgency}
-                  onValueChange={(value) =>
-                    value &&
+                  onValueChange={(value) => {
+                    if (!value) return;
                     setFormData((prev) => ({
                       ...prev,
                       urgency: value as UrgencyLevel,
-                    }))
-                  }
-                  className="grid grid-cols-3 gap-2"
+                    }));
+                  }}
+                  className="grid grid-cols-3 gap-4"
                 >
                   <ToggleGroupItem
                     value="critical"
-                    className="data-[state=on]:bg-red-500 data-[state=on]:text-white"
+                    className="text-lg data-[state=on]:bg-red-500 data-[state=on]:text-white"
                   >
-                    🔴 Critical
+                    Critical
                   </ToggleGroupItem>
+
                   <ToggleGroupItem
                     value="high"
-                    className="data-[state=on]:bg-orange-500 data-[state=on]:text-white"
+                    className="text-lg data-[state=on]:bg-orange-500 data-[state=on]:text-white"
                   >
-                    🟠 High
+                    High
                   </ToggleGroupItem>
+
                   <ToggleGroupItem
                     value="medium"
-                    className="data-[state=on]:bg-yellow-500 data-[state=on]:text-white"
+                    className="text-lg data-[state=on]:bg-yellow-500 data-[state=on]:text-black"
                   >
-                    🟡 Medium
+                    Medium
                   </ToggleGroupItem>
                 </ToggleGroup>
               </CardContent>
             </Card>
 
-            {/* Summary */}
-            <Alert className="bg-blue-50 border-blue-200">
-              <AlertDescription>
-                <strong>Summary:</strong> {formData.emergencyType} emergency,{" "}
-                {formData.peopleCount} people, {formData.urgency} urgency
+            <Alert className="bg-blue-500/20 border-blue-400">
+              <AlertDescription className="text-blue-200 text-lg">
+                Summary: {formData.emergencyType} | {formData.peopleCount}{" "}
+                people | {formData.urgency} urgency
               </AlertDescription>
             </Alert>
-
-            <Button
-              variant={"ghost"}
-              onClick={handleBackStep}
-              className="ml-auto left-0"
-            >
-              <ArrowLeft /> Back
-            </Button>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };
