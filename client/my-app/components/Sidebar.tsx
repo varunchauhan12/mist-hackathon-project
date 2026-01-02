@@ -85,7 +85,7 @@ export default function Sidebar({ role }: { role: Role }) {
       },
       { 
         name: "Route Planning", 
-        path: "/rescue/routes",
+        path: "/rescue/mapRoutes",
         icon: <Route size={20} />
       },
     ],
