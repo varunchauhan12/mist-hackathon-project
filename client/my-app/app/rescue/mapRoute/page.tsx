@@ -1,44 +1,38 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  Polyline,
-  useMap,
-} from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import dynamic from "next/dynamic";
 import Sidebar from "@/components/Sidebar";
 import { Navigation, LocateFixed, Route } from "lucide-react";
+import "leaflet/dist/leaflet.css";
 
-/* ---------- Fix Leaflet Icons ---------- */
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-});
+/* ------------------ DYNAMIC LEAFLET (NO SSR) ------------------ */
+const MapContainer = dynamic(
+  () => import("react-leaflet").then((m) => m.MapContainer),
+  { ssr: false }
+);
+const TileLayer = dynamic(
+  () => import("react-leaflet").then((m) => m.TileLayer),
+  { ssr: false }
+);
+const Marker = dynamic(
+  () => import("react-leaflet").then((m) => m.Marker),
+  { ssr: false }
+);
+const Popup = dynamic(
+  () => import("react-leaflet").then((m) => m.Popup),
+  { ssr: false }
+);
+const Polyline = dynamic(
+  () => import("react-leaflet").then((m) => m.Polyline),
+  { ssr: false }
+);
+const useMap = dynamic(
+  () => import("react-leaflet").then((m) => m.useMap),
+  { ssr: false }
+);
 
-/* ---------- Icons ---------- */
-const unitIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
-
-const targetIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/64/64113.png",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
-
-/* ---------- Follow Unit ---------- */
+/* ------------------ FOLLOW UNIT ------------------ */
 function FollowUnit({
   position,
   enabled,
@@ -47,17 +41,15 @@ function FollowUnit({
   enabled: boolean;
 }) {
   const map = useMap();
-
   useEffect(() => {
     if (enabled) {
       map.setView(position, map.getZoom(), { animate: true });
     }
   }, [position, enabled, map]);
-
   return null;
 }
 
-/* ---------- Fit Route ---------- */
+/* ------------------ FIT ROUTE ------------------ */
 function FitRoute({
   route,
   enabled,
@@ -66,17 +58,17 @@ function FitRoute({
   enabled: boolean;
 }) {
   const map = useMap();
-
   useEffect(() => {
     if (!enabled && route.length > 1) {
       map.fitBounds(route, { padding: [80, 80] });
     }
   }, [route, enabled, map]);
-
   return null;
 }
 
 export default function RescueRoutePlanner() {
+  const [mounted, setMounted] = useState(false);
+
   const [unitPos, setUnitPos] = useState<[number, number]>([
     28.6139,
     77.209,
@@ -88,14 +80,32 @@ export default function RescueRoutePlanner() {
   const [query, setQuery] = useState("");
   const [followUnit, setFollowUnit] = useState(false);
 
-  /* ---------- Live GPS ---------- */
+  /* ------------------ CLIENT-ONLY LEAFLET SETUP ------------------ */
+  useEffect(() => {
+    setMounted(true);
+
+    (async () => {
+      const L = (await import("leaflet")).default;
+
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+        iconUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+        shadowUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+      });
+    })();
+  }, []);
+
+  /* ------------------ LIVE GPS ------------------ */
   useEffect(() => {
     if (!navigator.geolocation) return;
 
     const id = navigator.geolocation.watchPosition(
-      (pos) => {
-        setUnitPos([pos.coords.latitude, pos.coords.longitude]);
-      },
+      (pos) =>
+        setUnitPos([pos.coords.latitude, pos.coords.longitude]),
       (err) => console.warn("GPS error:", err),
       { enableHighAccuracy: true }
     );
@@ -103,7 +113,7 @@ export default function RescueRoutePlanner() {
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
-  /* ---------- Fetch Coordinates ---------- */
+  /* ------------------ FETCH COORDINATES ------------------ */
   const fetchCoords = async (place: string) => {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
@@ -112,24 +122,22 @@ export default function RescueRoutePlanner() {
     );
     const data = await res.json();
     if (!data?.length) return null;
-
     return [parseFloat(data[0].lat), parseFloat(data[0].lon)] as [
       number,
       number
     ];
   };
 
-  /* ---------- Fetch Route ---------- */
+  /* ------------------ FETCH ROUTE ------------------ */
   const getRoute = async (dest: [number, number]) => {
     try {
-      const apiKey =
-        "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjJjYjNlYTlkNjIyYjQ0MGJhZjgwODI3MDJhYmU0MmYwIiwiaCI6Im11cm11cjY0In0=";
+      const apiKey = "YOUR_OPENROUTESERVICE_KEY";
 
       const res = await fetch(
         `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${unitPos[1]},${unitPos[0]}&end=${dest[1]},${dest[0]}`
       );
-
       const data = await res.json();
+
       if (!data?.features?.length) throw new Error("No route");
 
       const coords = data.features[0].geometry.coordinates.map(
@@ -138,7 +146,6 @@ export default function RescueRoutePlanner() {
 
       setRoute(coords);
       setDestination(dest);
-
       setInstructions(
         data.features[0].properties.segments[0].steps.map((s: any) => ({
           instruction: s.instruction,
@@ -146,10 +153,8 @@ export default function RescueRoutePlanner() {
           duration: Math.round(s.duration / 60),
         }))
       );
-
       setFollowUnit(false);
-    } catch (err) {
-      console.error("Route error:", err);
+    } catch {
       setRoute([unitPos, dest]);
       setDestination(dest);
       setInstructions([]);
@@ -162,22 +167,17 @@ export default function RescueRoutePlanner() {
     if (coords) getRoute(coords);
   };
 
+  if (!mounted) return null;
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-[#020617] via-[#0c4a6e] to-[#0f172a]">
       <Sidebar role="rescue" />
 
-      <main className="flex-1 p-8 overflow-y-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Rescue Route Planning
-          </h1>
-          <p className="text-cyan-300">
-            Live navigation & response routing
-          </p>
-        </div>
+      <main className="flex-1 p-8">
+        <h1 className="text-4xl font-bold text-white mb-6">
+          Rescue Route Planning
+        </h1>
 
-        {/* Controls */}
         <div className="flex gap-3 mb-6">
           <input
             value={query}
@@ -200,28 +200,23 @@ export default function RescueRoutePlanner() {
           </button>
         </div>
 
-        {/* Map + Instructions */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          {/* Map */}
-          <div className="xl:col-span-3 bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-            <MapContainer center={unitPos} zoom={13} className="w-full h-[70vh]">
+          <div className="xl:col-span-3 rounded-2xl overflow-hidden">
+            <MapContainer center={unitPos} zoom={13} className="h-[70vh]">
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-              <Marker position={unitPos} icon={unitIcon}>
+              <Marker position={unitPos}>
                 <Popup>Rescue Unit</Popup>
               </Marker>
 
               {destination && (
-                <Marker position={destination} icon={targetIcon}>
+                <Marker position={destination}>
                   <Popup>Incident Location</Popup>
                 </Marker>
               )}
 
               {route.length > 1 && (
-                <Polyline
-                  positions={route}
-                  pathOptions={{ color: "#06b6d4", weight: 5 }}
-                />
+                <Polyline positions={route} pathOptions={{ color: "#06b6d4" }} />
               )}
 
               <FollowUnit position={unitPos} enabled={followUnit} />
@@ -229,30 +224,22 @@ export default function RescueRoutePlanner() {
             </MapContainer>
           </div>
 
-          {/* Directions */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 h-[70vh] overflow-y-auto">
-            <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+          <div className="bg-white/5 p-4 rounded-2xl h-[70vh] overflow-y-auto">
+            <h3 className="text-white font-semibold mb-4 flex gap-2">
               <Route size={18} /> Route Instructions
             </h3>
 
             {instructions.length ? (
-              instructions.map((step, i) => (
-                <div
-                  key={i}
-                  className="mb-3 p-3 bg-gray-900/70 border border-gray-700 rounded-lg"
-                >
-                  <p className="text-gray-200 text-sm">
-                    {step.instruction}
-                  </p>
-                  <p className="text-xs text-cyan-400 mt-1">
-                    {step.distance} km • {step.duration} min
+              instructions.map((s, i) => (
+                <div key={i} className="mb-3 p-3 bg-gray-900 rounded-lg">
+                  <p className="text-sm text-gray-200">{s.instruction}</p>
+                  <p className="text-xs text-cyan-400">
+                    {s.distance} km • {s.duration} min
                   </p>
                 </div>
               ))
             ) : (
-              <p className="text-gray-400 text-sm">
-                No route generated yet.
-              </p>
+              <p className="text-gray-400">No route generated yet.</p>
             )}
           </div>
         </div>
