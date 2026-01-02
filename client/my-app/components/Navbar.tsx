@@ -17,7 +17,7 @@ export default function DisasterNavbar() {
   ];
 
   const moreLinks = [
-    { name: "Emergency", path: "/contacts", critical: true },
+    { name: "Emergency", path: "/victim/report", critical: true },
     { name: "Contact Us", path: "/contactUs" },
     { name: "logistics", path: "/logistics/dashboard" },
     { name: "Rescue", path: "/rescue/dashboard" },
@@ -51,10 +51,10 @@ export default function DisasterNavbar() {
             <Image
               src="/logo.png"
               alt="COMMANDR Logo"
-              width={48}
-              height={48}
+              width={80}
+              height={80}
               priority
-              className="object-contain hover:scale-110 transition-transform duration-300"
+              className="w-full h-full object-cover hover:scale-110 transition-transform duration-300 rounded-full"
             />
           </div>
 
