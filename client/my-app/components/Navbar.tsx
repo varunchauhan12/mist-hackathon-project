@@ -11,14 +11,16 @@ export default function DisasterNavbar() {
 
   const navLinks = [
     { name: "Home", path: "/" },
-    { name: "About", path: "/about"},
-    { name: "Dashboard", path: "/victim/dashboard",critical: true },
+    { name: "About", path: "/about" },
+    { name: "Dashboard", path: "/victim/dashboard", critical: true },
     { name: "User Login", path: "/auth/login" },
   ];
 
   const moreLinks = [
     { name: "Emergency", path: "/contacts", critical: true },
     { name: "Contact Us", path: "/contactUs" },
+    { name: "logistics", path: "/logistics/dashboard" },
+    { name: "Rescue", path: "/rescue/dashboard" },
   ];
 
   // -------- Scroll Glassmorphism --------
