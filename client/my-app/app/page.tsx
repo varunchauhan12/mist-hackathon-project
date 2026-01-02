@@ -6,8 +6,18 @@ import { Users, Brain, CheckCircle, Radio, AlertTriangle } from "lucide-react";
 import FeaturesSection from "@/components/FeatureSection";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
 
+export enum UserRole {
+  Victim = "victim",
+  Rescuer = "rescuer",
+  Commander = "commander",
+}
+
+interface User {
+  role: UserRole;
+}
+
 export default function Home() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
 
   const words = ["Coordinate", "Optimize", "Save"];
   const [currentWord, setCurrentWord] = useState(0);
@@ -20,9 +30,9 @@ export default function Home() {
   }, []);
 
   const getDashboardRoute = () => {
-    if (user?.role === "victim") return "/victim/dashboard";
-    if (user?.role === "rescue") return "/rescue/dashboard";
-    if (user?.role === "logistics") return "/logistics/dashboard";
+    if (user?.role === UserRole.Victim) return "/victim/dashboard";
+    if (user?.role === UserRole.Rescuer) return "/rescue/dashboard";
+    if (user?.role === UserRole.Commander) return "/logistics/dashboard";
     return "/dashboard";
   };
 
@@ -33,7 +43,7 @@ export default function Home() {
         <BackgroundRippleEffect rows={10} cols={30} cellSize={64} />
         {/* Animated Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
-        
+
         {/* Radial Gradient Overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#ef444410,transparent_70%)]"></div>
 
@@ -80,7 +90,8 @@ export default function Home() {
             transition={{ delay: 0.8, duration: 1 }}
             className="text-lg md:text-xl text-[#9ca3af] max-w-3xl mb-12"
           >
-            One intelligence platform, three access layers — victims report, rescuers act, logistics optimizes
+            One intelligence platform, three access layers — victims report,
+            rescuers act, logistics optimizes
           </motion.p>
 
           {/* Buttons */}
@@ -122,42 +133,45 @@ function ThreeLevelsSection() {
     {
       title: "Victim / Citizen Level",
       subtitle: "📡 Data Provider + Beneficiary",
-      description: "Report emergencies with photo, location, and type. See nearby safe zones and get evacuation instructions. Victims become live sensors — information reaches authorities directly.",
+      description:
+        "Report emergencies with photo, location, and type. See nearby safe zones and get evacuation instructions. Victims become live sensors — information reaches authorities directly.",
       color: "#ef4444",
       icon: <Users size={40} />,
       features: [
         "Report help requests instantly",
         "Mark emergency type (flood, fire, trapped)",
         "See nearby safe zones & help status",
-        "Get evacuation instructions"
-      ]
+        "Get evacuation instructions",
+      ],
     },
     {
       title: "Rescue Groups Level",
       subtitle: "🚑 Execution & Coordination",
-      description: "View live disaster heatmap, verified alerts, and optimal routes. Accept assignments and coordinate with teams. Removes guesswork, prevents duplicate rescues.",
+      description:
+        "View live disaster heatmap, verified alerts, and optimal routes. Accept assignments and coordinate with teams. Removes guesswork, prevents duplicate rescues.",
       color: "#f59e0b",
       icon: <Radio size={40} />,
       features: [
         "Live disaster heatmap",
         "Verified crowd alerts",
         "Best routes to reach victims",
-        "Coordinate with other teams"
-      ]
+        "Coordinate with other teams",
+      ],
     },
     {
       title: "Logistics Level",
       subtitle: "🧠 Strategy, Planning & Optimization",
-      description: "Control ambulances, optimize routes, simulate scenarios, and coordinate cross-region disaster response. System-wide performance monitoring and what-if simulations.",
+      description:
+        "Control ambulances, optimize routes, simulate scenarios, and coordinate cross-region disaster response. System-wide performance monitoring and what-if simulations.",
       color: "#38bdf8",
       icon: <Brain size={40} />,
       features: [
         "Manage ambulances, boats, helicopters",
         "Route optimization & simulations",
         "Resource utilization tracking",
-        "Cross-region coordination"
-      ]
-    }
+        "Cross-region coordination",
+      ],
+    },
   ];
 
   return (
@@ -171,10 +185,14 @@ function ThreeLevelsSection() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-wide mb-6 text-[#e5e7eb]">
-            One System, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ef4444] to-[#f59e0b]">Three User Levels</span>
+            One System,{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ef4444] to-[#f59e0b]">
+              Three User Levels
+            </span>
           </h2>
           <p className="text-lg md:text-xl text-[#9ca3af] leading-relaxed max-w-3xl mx-auto">
-            Same intelligence underneath, different views on top. Victims become sensors, rescuers execute, and logistics optimizes.
+            Same intelligence underneath, different views on top. Victims become
+            sensors, rescuers execute, and logistics optimizes.
           </p>
         </motion.div>
 
@@ -188,21 +206,35 @@ function ThreeLevelsSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.15 }}
             >
-              <div 
+              <div
                 style={{ backgroundColor: level.color }}
                 className="w-20 h-20 rounded-2xl flex items-center justify-center text-white mb-6 mx-auto shadow-lg"
               >
                 {level.icon}
               </div>
-              <h3 className="text-2xl font-bold text-[#e5e7eb] mb-2 text-center">{level.title}</h3>
-              <p className="text-sm font-semibold text-center mb-4" style={{ color: level.color }}>{level.subtitle}</p>
+              <h3 className="text-2xl font-bold text-[#e5e7eb] mb-2 text-center">
+                {level.title}
+              </h3>
+              <p
+                className="text-sm font-semibold text-center mb-4"
+                style={{ color: level.color }}
+              >
+                {level.subtitle}
+              </p>
               <p className="text-[#9ca3af] text-base leading-relaxed mb-6 text-center">
                 {level.description}
               </p>
               <ul className="space-y-2">
                 {level.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-[#9ca3af]">
-                    <CheckCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: level.color }} />
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-sm text-[#9ca3af]"
+                  >
+                    <CheckCircle
+                      size={16}
+                      className="mt-0.5 flex-shrink-0"
+                      style={{ color: level.color }}
+                    />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -218,7 +250,8 @@ function ThreeLevelsSection() {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="text-[#9ca3af] text-lg md:text-xl max-w-4xl mx-auto italic text-center border-t border-white/12 pt-8"
         >
-          "It's a single intelligence platform with three access layers — victims report, rescuers act, and logistics optimizes."
+          "It's a single intelligence platform with three access layers —
+          victims report, rescuers act, and logistics optimizes."
         </motion.p>
       </div>
     </section>
@@ -231,31 +264,31 @@ function HowItWorksSection() {
       icon: <Users size={32} />,
       label: "Report Emergency",
       description: "Citizens report help requests instantly",
-      color: "#ef4444"
+      color: "#ef4444",
     },
     {
       icon: <Brain size={32} />,
       label: "AI Analysis",
       description: "System analyzes and prioritizes alerts",
-      color: "#f59e0b"
+      color: "#f59e0b",
     },
     {
       icon: <Radio size={32} />,
       label: "Dispatch Teams",
       description: "Rescue groups receive assignments",
-      color: "#22c55e"
+      color: "#22c55e",
     },
     {
       icon: <CheckCircle size={32} />,
       label: "Optimize Routes",
       description: "Logistics coordinates resources efficiently",
-      color: "#38bdf8"
+      color: "#38bdf8",
     },
     {
       icon: <AlertTriangle size={32} />,
       label: "Save Lives",
       description: "Real-time coordination saves precious time",
-      color: "#ef4444"
+      color: "#ef4444",
     },
   ];
 
@@ -271,7 +304,8 @@ function HowItWorksSection() {
             Works
           </h2>
           <p className="text-xl text-[#9ca3af] max-w-3xl mx-auto">
-            From emergency report to rescue coordination — we handle everything in real time
+            From emergency report to rescue coordination — we handle everything
+            in real time
           </p>
         </div>
 

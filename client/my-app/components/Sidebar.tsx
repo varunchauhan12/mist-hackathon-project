@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { 
-  AlertCircle, 
-  MapPin, 
-  Bell, 
+import {
+  AlertCircle,
+  MapPin,
+  Bell,
   Radio,
   TrendingUp,
   Users,
@@ -15,7 +15,7 @@ import {
   Settings,
   LogOut,
   Shield,
-  Activity
+  Activity,
 } from "lucide-react";
 
 type Role = "victim" | "rescue" | "logistics";
@@ -33,87 +33,87 @@ export default function Sidebar({ role }: { role: Role }) {
   // Role-specific navigation with icons
   const linksByRole: Record<Role, NavLink[]> = {
     victim: [
-      { 
-        name: "Dashboard", 
+      {
+        name: "Dashboard",
         path: "/victim/dashboard",
-        icon: <Activity size={20} />
+        icon: <Activity size={20} />,
       },
-      { 
-        name: "Report Emergency", 
+      {
+        name: "Report Emergency",
         path: "/victim/report",
-        icon: <AlertCircle size={20} />
+        icon: <AlertCircle size={20} />,
       },
-      { 
-        name: "My Requests", 
+      {
+        name: "My Requests",
         path: "/victim/status",
         icon: <Bell size={20} />,
-        badge: 3
+        badge: 3,
       },
-      { 
-        name: "Safe Zones", 
+      {
+        name: "Safe Zones",
         path: "/victim/safe-zones",
-        icon: <MapPin size={20} />
+        icon: <MapPin size={20} />,
       },
-      { 
-        name: "Notifications", 
+      {
+        name: "Notifications",
         path: "/victim/notifications",
         icon: <Radio size={20} />,
-        badge: 2
+        badge: 2,
       },
     ],
     rescue: [
-      { 
-        name: "Command Center", 
+      {
+        name: "Command Center",
         path: "/rescue/dashboard",
-        icon: <Shield size={20} />
+        icon: <Shield size={20} />,
       },
-      { 
-        name: "Live Missions", 
+      {
+        name: "Live Missions",
         path: "/rescue/missions",
         icon: <TrendingUp size={20} />,
-        badge: 5
+        badge: 5,
       },
-      { 
-        name: "Heatmap View", 
+      {
+        name: "Heatmap View",
         path: "/rescue/heatmap",
-        icon: <MapPin size={20} />
+        icon: <MapPin size={20} />,
       },
-      { 
-        name: "Team Coordination", 
+      {
+        name: "Team Coordination",
         path: "/rescue/teams",
-        icon: <Users size={20} />
+        icon: <Users size={20} />,
       },
-      { 
-        name: "Route Planning", 
+      {
+        name: "Route Planning",
         path: "/rescue/mapRoute",
-        icon: <Route size={20} />
+        icon: <Route size={20} />,
       },
     ],
     logistics: [
-      { 
-        name: "Control Center", 
+      {
+        name: "Control Center",
         path: "/logistics/dashboard",
-        icon: <BarChart3 size={20} />
+        icon: <BarChart3 size={20} />,
       },
-      { 
-        name: "Vehicle Allocation", 
-        path: "/logistics/vehicles",
-        icon: <Truck size={20} />
+      {
+        name: "Vehicle Allocation",
+        path: "/logistics/vehicleAllocation",
+        icon: <Truck size={20} />,
       },
-      { 
-        name: "What-If Simulator", 
-        path: "/logistics/simulator",
-        icon: <Brain size={20} />
+      {
+        name: "What-If Simulator",
+        path: "/logistics/what-if-simulator",
+        icon: <Brain size={20} />,
       },
-      { 
-        name: "Analytics", 
-        path: "/logistics/analytics",
-        icon: <TrendingUp size={20} />
+      {
+        name: "Analytics",
+        path: "/logistics/Analytics",
+        icon: <TrendingUp size={20} />,
       },
-      { 
-        name: "Resource Management", 
-        path: "/logistics/resources",
-        icon: <Activity size={20} />
+      {
+        name: "Resource Management",
+        path: "/logistics/Resource-management",
+        icon: <Activity size={20} />,
       },
     ],
   };
@@ -161,18 +161,22 @@ export default function Sidebar({ role }: { role: Role }) {
   const styles = roleStyles[role];
 
   return (
-    <aside className={`w-72 min-h-screen bg-gradient-to-b ${styles.gradient} backdrop-blur-xl border-r ${styles.border} p-6 flex flex-col`}>
+    <aside
+      className={`w-72 min-h-screen bg-gradient-to-b ${styles.gradient} backdrop-blur-xl border-r ${styles.border} p-6 flex flex-col`}
+    >
       {/* Logo & Role Badge */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-3">
-          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${styles.gradient} ${styles.border} border flex items-center justify-center`}>
+          <div
+            className={`w-10 h-10 rounded-xl bg-gradient-to-br ${styles.gradient} ${styles.border} border flex items-center justify-center`}
+          >
             <Activity className={styles.accent} size={24} />
           </div>
-          <h2 className="text-2xl font-extrabold text-white">
-            COMMANDR
-          </h2>
+          <h2 className="text-2xl font-extrabold text-white">COMMANDR</h2>
         </div>
-        <div className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${styles.accent} bg-white/5 border ${styles.border}`}>
+        <div
+          className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${styles.accent} bg-white/5 border ${styles.border}`}
+        >
           {roleLabels[role]}
         </div>
       </div>
@@ -190,7 +194,9 @@ export default function Sidebar({ role }: { role: Role }) {
             </span>
             <span className="font-medium text-sm">{link.name}</span>
             {link.badge !== undefined && (
-              <span className={`ml-auto ${styles.badge} text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center`}>
+              <span
+                className={`ml-auto ${styles.badge} text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center`}
+              >
                 {link.badge}
               </span>
             )}
@@ -200,7 +206,6 @@ export default function Sidebar({ role }: { role: Role }) {
 
       {/* Settings & Logout */}
       <div className="space-y-2 pt-6 border-t border-white/10">
-
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 hover:border-red-500/40 border border-transparent transition-all"
