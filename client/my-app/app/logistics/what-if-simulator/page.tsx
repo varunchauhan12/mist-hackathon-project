@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import ChaosControl from "@/components/simulator/ChaosControl";
+import Sidebar from "@/components/Sidebar";
 import AIIntelligencePanel, {
   SimulationResult,
 } from "@/components/simulator/AIreccomendation";
@@ -70,7 +71,9 @@ export default function SimulatorPage() {
   };
 
   return (
-    <div className="flex w-full h-screen bg-black overflow-hidden">
+    <div className="flex w-full min-h-screen bg-black overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar role="logistics" />
       {/* Main Content Area */}
       <div className="flex-1 relative overflow-hidden">
         {/* The Simulation Map */}
