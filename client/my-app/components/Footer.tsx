@@ -62,7 +62,7 @@ export default function DisasterFooter() {
             {[
               { name: "Home", path: "/" },
               { name: "About Us", path: "/about" },
-              { name: "Emergency Contacts", path: "/contacts", critical: true },
+              { name: "Emergency Contacts", path: "/emergency", critical: true },
               { name: "Shelter Map", path: "/shelters", safegaurd: true },
               { name: "DashBoard", path: "/dashboard" },
             ].map((link) => (
