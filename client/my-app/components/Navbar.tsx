@@ -18,7 +18,7 @@ export default function DisasterNavbar() {
 
   const moreLinks = [
     { name: "Emergency Contacts", path: "/emergency", critical: true },
-    { name: "Contact Us", path: "/contactUs" },
+    { name: "Contact Us", path: "/contact" },
     { name: "logistics", path: "/logistics/dashboard" },
     { name: "Rescue", path: "/rescue/dashboard" },
   ];
