@@ -8,15 +8,12 @@ import {
 } from "../controllers/authController.js";
 
 import { userAuth, authorize } from "../middlewares/authMiddleware.js";
-import {
-  validateUserSignup,
-  validateUserLogin,
-} from "../middlewares/validate.js";
+import { validateUserSignUp, validateUserLogin } from "../middlewares/validate.js";
 import { wrapAsync } from "../middlewares/wrapAsync.js";
 
 const router = express.Router();
 
-router.post("/signup", validateUserSignup, wrapAsync(signup));
+router.post("/signup", validateUserSignUp, wrapAsync(signup));
 
 router.post("/login", validateUserLogin, wrapAsync(login));
 

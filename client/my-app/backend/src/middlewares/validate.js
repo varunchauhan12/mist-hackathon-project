@@ -1,4 +1,4 @@
-import { userSignUpSchema, userLoginSchema } from "../Schema/index.js";
+import { userSignUpSchema, userLoginSchema } from "../Schema.js";
 import ExpressError from "./expressError.js";
 
 export const validateUserSignUp = (req, res, next) => {
