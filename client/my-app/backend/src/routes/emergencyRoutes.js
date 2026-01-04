@@ -8,7 +8,7 @@ import {
   getMyEmergencies,
   fetchAllEmergencies,
   changeEmergencyStatus,
-} from "../controllers/emergency.controller.js";
+} from "../controllers/emergencyController.js";
 
 const router = express.Router();
 
