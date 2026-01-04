@@ -8,6 +8,9 @@ import connectToDB from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import emergencyRoutes from "./routes/emergencyRoutes.js";
+import missionRoutes from "./routes/missionRoutes.js";
+import vehicleRoutes from "./routes/vehicleRoutes.js";
+import safeZoneRoutes from "./routes/safeZoneRoutes.js";
 
 dotenv.config();
 
@@ -34,6 +37,9 @@ await connectToDB();
 // routes
 app.use("/api/auth", authRoutes);
 app.use("/api/emergencies", emergencyRoutes);
+app.use("/api/missions", missionRoutes);
+app.use("/api/vehicles", vehicleRoutes);
+app.use("/api/safezones", safeZoneRoutes);
 
 //error handler
 app.use((err,req,res,next)=>{
