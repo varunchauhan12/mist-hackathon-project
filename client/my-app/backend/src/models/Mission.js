@@ -28,7 +28,7 @@ const missionSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "active", "completed", "cancelled"],
+      enum: ["pending", "enroute", "active", "completed", "cancelled"],
       default: "pending",
       index: true,
     },

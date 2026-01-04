@@ -6,11 +6,11 @@ const vehicleSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      lowercase: true,
+      lowercase: true, // ambulance, truck, boat, drone
     },
 
     identifier: {
-      type: String,
+      type: String, // vehicle number / call sign
       required: true,
       unique: true,
       trim: true,

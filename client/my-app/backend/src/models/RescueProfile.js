@@ -22,13 +22,15 @@ const rescueProfileSchema = new mongoose.Schema(
         enum: ["medical", "diving", "fire"],
       },
     ],
-      availabilityStatus: {
+
+    availabilityStatus: {
       type: String,
       enum: ["available", "on-mission", "offline"],
       default: "offline",
       index: true,
     },
-      currentMissionId: {
+
+    currentMissionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Mission",
       default: null,
