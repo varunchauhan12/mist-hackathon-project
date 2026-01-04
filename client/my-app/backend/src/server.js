@@ -6,6 +6,8 @@ import http from "http";
 import { Server } from "socket.io";
 import connectToDB from "./config/db.js";
 
+import authRoutes from "./routes/authRoutes.js";
+
 dotenv.config();
 
 const app = express();
@@ -26,6 +28,22 @@ app.get("/test",(req,res)=>{
 })
 
 await connectToDB();
+
+
+// routes
+app.use("/api/auth", authRoutes);
+
+//error handler
+app.use((err,req,res,next)=>{
+    const status=(typeof err.status==="number")? err.status:500;
+    const message=err.message||"Internal Server Error";
+
+    if(res.headersSent){
+        return next(err);
+    }
+
+    res.status(status).json({message});
+})
 
 // socket.io setup
 const server=http.createServer(app);
