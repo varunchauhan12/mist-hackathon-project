@@ -1,5 +1,5 @@
-export default function wrapAsync(fn) {
-    return function(req,res,next){
-        fn(req,res,next).catch(err=>next(err));
+export const wrapAsync = (fn) => {
+    return (req, res, next) => {
+        fn(req, res, next).catch(err => next(err));
     };
 };
