@@ -4,6 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
+import connectToDB from "./config/db.js";
 
 dotenv.config();
 
@@ -23,6 +24,8 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/test",(req,res)=>{
     res.send("Server is running..!!");
 })
+
+await connectToDB();
 
 // socket.io setup
 const server=http.createServer(app);
