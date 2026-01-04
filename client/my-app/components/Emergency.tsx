@@ -1,6 +1,6 @@
 "use client";
 
-import { DisasterType } from "@/types/safeZone";
+import { DisasterType } from "@/backend/src/models/Emergency";
 
 interface EmergencyInstructionsProps {
   disasterType: DisasterType;
