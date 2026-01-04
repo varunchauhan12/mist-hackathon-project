@@ -7,6 +7,7 @@ import { Server } from "socket.io";
 import connectToDB from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
+import emergencyRoutes from "./routes/emergencyRoutes.js";
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ await connectToDB();
 
 // routes
 app.use("/api/auth", authRoutes);
+app.use("/api/emergencies", emergencyRoutes);
 
 //error handler
 app.use((err,req,res,next)=>{
