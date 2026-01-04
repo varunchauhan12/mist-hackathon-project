@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
+import authApi from "../../(api)/authApi/page";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -18,29 +19,26 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [focusedField, setFocusedField] = useState("");
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const res = await api.post("/api/auth/signup", formData);
+      const res = await authApi.post("/signup", formData);
       const role = res.data.user.role;
 
       if (role === "victim") router.push("/victim/report");
       else if (role === "rescue") router.push("/rescue/dashboard");
       else if (role === "logistics") router.push("/logistics/dashboard");
       else router.push("/dashboard");
-    } catch (err: any) {
+    } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "Signup failed. Please try again."
+        err.response?.data?.message || "Signup failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -77,7 +75,7 @@ export default function SignupPage() {
               type={input.type}
               name={input.name}
               placeholder={input.placeholder}
-              value={(formData as any)[input.name]}
+              value={formData[input.name]}
               onChange={handleChange}
               onFocus={() => setFocusedField(input.name)}
               onBlur={() => setFocusedField("")}
