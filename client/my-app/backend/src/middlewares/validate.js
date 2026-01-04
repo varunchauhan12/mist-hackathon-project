@@ -6,6 +6,8 @@ import {
   createSafeZoneSchema,
   createVehicleSchema,
   createVictimProfileSchema,
+  createRescueProfileSchema,
+  createLogisticsProfileSchema,
 } from "../Schema.js";
 
 import ExpressError from "./expressError.js";
@@ -102,6 +104,36 @@ export const validateCreateVehicle = (req, res, next) => {
 
 export const validateCreateVictimProfile = (req, res, next) => {
   const { error } = createVictimProfileSchema.validate(req.body, {
+    abortEarly: false,
+  });
+
+  if (error) {
+    throw new ExpressError(
+      400,
+      error.details.map((err) => err.message).join(", ")
+    );
+  }
+
+  next();
+};
+
+export const validateCreateRescueProfile = (req, res, next) => {
+  const { error } = createRescueProfileSchema.validate(req.body, {
+    abortEarly: false,
+  });
+
+  if (error) {
+    throw new ExpressError(
+      400,
+      error.details.map((err) => err.message).join(", ")
+    );
+  }
+
+  next();
+};
+
+export const validateCreateLogisticsProfile = (req, res, next) => {
+  const { error } = createLogisticsProfileSchema.validate(req.body, {
     abortEarly: false,
   });
 
