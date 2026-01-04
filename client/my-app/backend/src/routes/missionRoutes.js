@@ -4,7 +4,7 @@ import { userAuth, authorize } from "../middlewares/authMiddleware.js";
 import { validateCreateMission } from "../middlewares/validate.js";
 
 import {
-  createMission,
+  makeMission,
   fetchRescueMissions,
   changeMissionStatus,
 } from "../controllers/missionController.js";
@@ -17,7 +17,7 @@ router.post(
   userAuth,
   authorize(["logistics"]),
   validateCreateMission,
-  wrapAsync(createMission)
+  wrapAsync(makeMission)
 );
 
 /* Rescue */
