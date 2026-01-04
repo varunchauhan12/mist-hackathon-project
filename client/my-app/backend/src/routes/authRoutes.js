@@ -8,20 +8,22 @@ import {
 } from "../controllers/authController.js";
 
 import { userAuth, authorize } from "../middlewares/authMiddleware.js";
-import { validateUserSignUp, validateUserLogin } from "../middlewares/validate.js";
+import {
+  validateUserSignUp,
+  validateUserLogin,
+} from "../middlewares/validate.js";
 import { wrapAsync } from "../middlewares/wrapAsync.js";
 
 const router = express.Router();
 
+/* auth */
+
 router.post("/signup", validateUserSignUp, wrapAsync(signup));
-
 router.post("/login", validateUserLogin, wrapAsync(login));
-
 router.post("/refresh", wrapAsync(refreshToken));
-
 router.post("/logout", userAuth, wrapAsync(logout));
 
-/* common user info */
+/* common user */
 
 router.get(
   "/me",
@@ -39,7 +41,7 @@ router.get(
   })
 );
 
-/* role based routes */
+/* role based */
 
 router.get(
   "/victim",
@@ -57,7 +59,6 @@ router.get(
     });
   })
 );
-
 
 router.get(
   "/rescue",
