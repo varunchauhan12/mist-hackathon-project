@@ -4,8 +4,9 @@ import "./globals.css";
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-// import ChatBot from "@/components/chatBot";
 
+import { AuthProvider } from "@/app/providers/AuthProvider";
+import LocationProvider from "@/app/providers/LocationProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,7 +20,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "COMMANDR - Disaster Management Platform",
-  description: "Empowering communities with real-time alerts, resources, and emergency response coordination.",
+  description:
+    "Empowering communities with real-time alerts, resources, and emergency response coordination.",
 };
 
 export default function RootLayout({
@@ -32,24 +34,24 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="flex flex-col min-h-screen w-full overflow-x-hidden scroll-smooth bg-gradient-to-tr from-green-50 via-white to-lime-50">
-          
-          {/* Navbar */}
-          <Navbar />
+        <AuthProvider>
+          <LocationProvider>
+            <div className="flex flex-col min-h-screen w-full overflow-x-hidden scroll-smooth bg-gradient-to-tr from-green-50 via-white to-lime-50">
+              
+              {/* Navbar */}
+              <Navbar />
 
-          {/* Main Content */}
-          <main className="flex-1 mt-24">
-            {children}
-          </main>
+              {/* Main Content */}
+              <main className="flex-1 mt-24">
+                {children}
+              </main>
 
-          {/* Chatbot */}
-          {/* <ChatBot className="fixed bottom-6 right-6 z-50" /> */}
-
-          {/* Footer */}
-          <Footer />
-        </div>
+              {/* Footer */}
+              <Footer />
+            </div>
+          </LocationProvider>
+        </AuthProvider>
       </body>
     </html>
   );
 }
-

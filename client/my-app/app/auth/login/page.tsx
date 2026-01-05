@@ -29,13 +29,8 @@ export default function LoginPage() {
 
     try {
       const res = await authApi.post("/login", formData);
-
-      const { token, user } = res.data;
-      const role = user.role;
-
-      socket.auth = { token };
-      socket.connect();
-
+      const role = res.data.user.role;
+      
       if (role === "victim") router.push("/victim/status");
       else if (role === "rescue") router.push("/rescue/dashboard");
       else if (role === "logistics") router.push("/logistics/dashboard");
