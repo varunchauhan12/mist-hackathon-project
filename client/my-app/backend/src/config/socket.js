@@ -33,14 +33,16 @@ export const initSocket = (httpServer) => {
     }
   });
 
-  io.on("connection",(socket)=>{
-    console.log("New user connected:",socket.id);
+  io.on("connection", (socket) => {
+    socket.join(socket.role); // Join room based on role
+    console.log("New user connected:", socket.id);
 
     //socket handlers
     require("../socket/locationHandler")(io, socket);
+    require("../socket/rescueChatHandler")(io, socket);
 
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
     });
-  })
+  });
 };
