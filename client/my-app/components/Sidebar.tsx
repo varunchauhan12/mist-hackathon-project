@@ -106,11 +106,6 @@ export default function Sidebar({ role }: { role: Role }) {
         icon: <Brain size={20} />,
       },
       {
-        name: "Analytics",
-        path: "/logistics/Analytics",
-        icon: <TrendingUp size={20} />,
-      },
-      {
         name: "Resource Management",
         path: "/logistics/Resource-management",
         icon: <Activity size={20} />,
