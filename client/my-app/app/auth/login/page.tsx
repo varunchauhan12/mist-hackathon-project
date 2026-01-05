@@ -1,9 +1,10 @@
 "use client";
 
+import { socket } from "@/lib/socket";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import authApi from "../../(api)/authApi/page";
+import authApi from "@/app/(api)/authApi/page";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,24 +18,29 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [focusedField, setFocusedField] = useState("");
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
       const res = await authApi.post("/login", formData);
-      const role = res.data.user.role;
+
+      const { token, user } = res.data;
+      const role = user.role;
+
+      socket.auth = { token };
+      socket.connect();
 
       if (role === "victim") router.push("/victim/status");
       else if (role === "rescue") router.push("/rescue/dashboard");
       else if (role === "logistics") router.push("/logistics/dashboard");
       else router.push("/dashboard");
-    } catch (err) {
+    } catch (err: any) {
       setError(
         err.response?.data?.message ||
           "Login failed. Please check your credentials."
@@ -73,7 +79,7 @@ export default function LoginPage() {
               type={input.type}
               name={input.name}
               placeholder={input.placeholder}
-              value={formData[input.name]}
+              value={formData[input.name as keyof typeof formData]}
               onChange={handleChange}
               onFocus={() => setFocusedField(input.name)}
               onBlur={() => setFocusedField("")}
