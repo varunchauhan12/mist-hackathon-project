@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
-import ExpressError from "../middlewares/expressError";
+import ExpressError from "../middlewares/expressError.js";
 
 export const initSocket = (httpServer) => {
   const io = new Server(httpServer, {
