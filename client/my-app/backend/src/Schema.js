@@ -320,3 +320,17 @@ export const createLogisticsProfileSchema = Joi.object({
   abortEarly: false,
   allowUnknown: false,
 });
+
+export const subSchema = Joi.object({
+  endpoint: Joi.string().required().messages({
+    "any.required": "Endpoint is required",
+    "string.empty": "Endpoint cannot be empty",
+  }),
+  keys: Joi.object({
+    auth: Joi.string().required(),
+    p256dh: Joi.string().required(),
+  }).required(),
+}).options({
+  abortEarly: false,
+  allowUnknown: false,
+});
