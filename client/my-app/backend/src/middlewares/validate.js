@@ -8,6 +8,7 @@ import {
   createVictimProfileSchema,
   createRescueProfileSchema,
   createLogisticsProfileSchema,
+  subSchema,
 } from "../Schema.js";
 
 import ExpressError from "./expressError.js";
@@ -144,5 +145,16 @@ export const validateCreateLogisticsProfile = (req, res, next) => {
     );
   }
 
+  next();
+};
+
+export const validateSub = (req, res, next) => {
+  const { error } = subSchema.validate(req.body);
+  if (error) {
+    throw new ExpressError(
+      400,
+      error.details.map(err => err.message).join(", ")
+    );
+  }
   next();
 };

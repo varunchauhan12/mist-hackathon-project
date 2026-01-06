@@ -13,6 +13,7 @@ import emergencyRoutes from "./routes/emergencyRoutes.js";
 import missionRoutes from "./routes/missionRoutes.js";
 import vehicleRoutes from "./routes/vehicleRoutes.js";
 import safeZoneRoutes from "./routes/safeZoneRoutes.js";
+import subsRoutes from "./routes/subsRouter.js";
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.use("/api/emergencies", emergencyRoutes);
 app.use("/api/missions", missionRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/safezones", safeZoneRoutes);
+app.use("/api/subscriptions", subsRoutes);
 
 app.use((err, req, res, next) => {
   const status = typeof err.status === "number" ? err.status : 500;
@@ -53,8 +55,6 @@ const server = http.createServer(app);
 
 initSocket(server);
 
-// const vapidKeys=webpush.generateVAPIDKeys();
-// console.log(vapidKeys);
 if (process.env.PUBLIC_VAPID_KEY && process.env.PRIVATE_VAPID_KEY) {
   webpush.setVapidDetails(
     "mailto:guptakaran.port@gmail.com",
@@ -66,6 +66,3 @@ if (process.env.PUBLIC_VAPID_KEY && process.env.PRIVATE_VAPID_KEY) {
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
-
-
