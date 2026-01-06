@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { socket } from "@/lib/socket";
 import { useLiveLocation } from "@/hooks/useLiveLocation";
 
 export default function LocationProvider({
@@ -10,13 +12,15 @@ export default function LocationProvider({
 }) {
   const { user, loading } = useAuth();
 
-  // don’t start before auth resolves
-  if (loading) return <>{children}</>;
+  useLiveLocation(!loading && user ? user.role : null);
 
-  // START TRACKING ONCE
-  if (user) {
-    useLiveLocation(user.role);
-  }
+  useEffect(() => {
+    if (!loading && user) {
+      socket.connect();
+    } else {
+      socket.disconnect();
+    }
+  }, [loading, user]);
 
   return <>{children}</>;
 }

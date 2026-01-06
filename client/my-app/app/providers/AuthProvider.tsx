@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import authApi from "@/app/(api)/authApi/page";
-import { socket } from "@/lib/socket";
 
 type User = {
   id: string;
@@ -23,19 +22,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // fetch logged-in user
   useEffect(() => {
     const fetchMe = async () => {
       try {
         const res = await authApi.get("/me");
         setUser(res.data.user);
-
-        // connect socket AFTER auth
-        socket.auth = { token: res.data.accessToken }; // optional if JWT in cookie
-        socket.connect();
       } catch {
         setUser(null);
-        socket.disconnect();
       } finally {
         setLoading(false);
       }
@@ -46,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     await authApi.post("/logout");
-    socket.disconnect();
     setUser(null);
   };
 

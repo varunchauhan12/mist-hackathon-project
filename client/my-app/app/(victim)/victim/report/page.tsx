@@ -70,6 +70,8 @@ const VictimReportPage = () => {
 
   const [step, setStep] = useState(1);
   const [isLocating, setIsLocating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const detectLocation = () => {
     setIsLocating(true);
@@ -86,6 +88,39 @@ const VictimReportPage = () => {
       },
       () => setIsLocating(false)
     );
+  };
+
+  /* ---------- SUBMIT HANDLER ---------- */
+  const handleSubmit = async () => {
+    setError(null);
+
+    if (!formData.emergencyType || !formData.location) {
+      setError("Emergency type and location are required.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const payload = {
+        ...formData,
+        photos: undefined, // handle uploads separately if needed
+      };
+
+      // Example API call
+      await fetch("/api/emergency-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      alert("Emergency report submitted successfully!");
+      setStep(1);
+    } catch (err) {
+      setError("Failed to submit report. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -172,7 +207,6 @@ const VictimReportPage = () => {
               <ArrowLeft /> Back
             </Button>
 
-            {/* Location */}
             <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-xl text-white flex items-center gap-2">
@@ -201,7 +235,6 @@ const VictimReportPage = () => {
               </CardContent>
             </Card>
 
-            {/* Description */}
             <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-xl text-white">
@@ -301,7 +334,6 @@ const VictimReportPage = () => {
                   Urgency Level
                 </CardTitle>
               </CardHeader>
-
               <CardContent>
                 <ToggleGroup
                   type="single"
@@ -315,36 +347,30 @@ const VictimReportPage = () => {
                   }}
                   className="grid grid-cols-3 gap-4"
                 >
-                  <ToggleGroupItem
-                    value="critical"
-                    className="text-lg data-[state=on]:bg-red-500 data-[state=on]:text-white"
-                  >
-                    Critical
-                  </ToggleGroupItem>
-
-                  <ToggleGroupItem
-                    value="high"
-                    className="text-lg data-[state=on]:bg-orange-500 data-[state=on]:text-white"
-                  >
-                    High
-                  </ToggleGroupItem>
-
-                  <ToggleGroupItem
-                    value="medium"
-                    className="text-lg data-[state=on]:bg-yellow-500 data-[state=on]:text-black"
-                  >
-                    Medium
-                  </ToggleGroupItem>
+                  <ToggleGroupItem value="critical">Critical</ToggleGroupItem>
+                  <ToggleGroupItem value="high">High</ToggleGroupItem>
+                  <ToggleGroupItem value="medium">Medium</ToggleGroupItem>
                 </ToggleGroup>
               </CardContent>
             </Card>
 
-            <Alert className="bg-blue-500/20 border-blue-400">
-              <AlertDescription className="text-blue-200 text-lg">
-                Summary: {formData.emergencyType} | {formData.peopleCount}{" "}
-                people | {formData.urgency} urgency
-              </AlertDescription>
-            </Alert>
+            {error && (
+              <Alert className="bg-red-500/20 border-red-400">
+                <AlertDescription className="text-red-200 text-lg">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex justify-end">
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="bg-green-600 hover:bg-green-700 text-white px-10 text-lg"
+              >
+                {isSubmitting ? "Submitting..." : "Submit Emergency Report"}
+              </Button>
+            </div>
           </div>
         )}
       </main>
