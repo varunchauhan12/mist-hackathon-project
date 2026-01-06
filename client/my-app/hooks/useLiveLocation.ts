@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { socket } from "@/lib/socket";
 
-type Role = "victim" | "rescue" | "logistics";
+type Role = "victim" | "rescue" | "logistics" | null;
 
 type Location = {
   lat: number;
@@ -9,7 +9,7 @@ type Location = {
 };
 
 const getDistanceInMeters = (a: Location, b: Location) => {
-  const R = 6371000; 
+  const R = 6371000;
   const toRad = (deg: number) => (deg * Math.PI) / 180;
 
   const dLat = toRad(b.lat - a.lat);
@@ -30,6 +30,7 @@ export const useLiveLocation = (role: Role) => {
   const lastLocationRef = useRef<Location | null>(null);
 
   useEffect(() => {
+    if (!role) return;
     if (!navigator.geolocation) return;
 
     watchIdRef.current = navigator.geolocation.watchPosition(
@@ -39,7 +40,6 @@ export const useLiveLocation = (role: Role) => {
           lng: pos.coords.longitude,
         };
 
-        // 20 meters threshold
         if (lastLocationRef.current) {
           const distance = getDistanceInMeters(
             lastLocationRef.current,
@@ -56,13 +56,11 @@ export const useLiveLocation = (role: Role) => {
           role,
         });
       },
-      (err) => {
-        console.error("Error getting location:", err);
-      },
+      () => {},
       {
-        enableHighAccuracy: role !== "logistics",
-        maximumAge: 10000,
-        timeout: 5000,
+        enableHighAccuracy: false,
+        maximumAge: 30000,
+        timeout: 10000,
       }
     );
 
