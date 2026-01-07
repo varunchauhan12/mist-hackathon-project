@@ -6,7 +6,11 @@ import {
 } from "../service/emergencyServices.js";
 
 export const reportEmergency = async (req, res) => {
-  const emergency = await createEmergency(req.user._id, req.body);
+  const emergency = await createEmergency(
+    req.user._id,
+    req.body,
+    req.app.get("io"),
+  );
   res
     .status(201)
     .json({ message: "Emergency reported successfully", emergency });
