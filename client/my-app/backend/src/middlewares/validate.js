@@ -9,6 +9,7 @@ import {
   createRescueProfileSchema,
   createLogisticsProfileSchema,
   subSchema,
+  createNotificationSchema,
 } from "../Schema.js";
 
 import ExpressError from "./expressError.js";
@@ -21,7 +22,7 @@ export const validateUserSignUp = (req, res, next) => {
   if (error) {
     throw new ExpressError(
       400,
-      error.details.map((err) => err.message).join(", ")
+      error.details.map((err) => err.message).join(", "),
     );
   }
 
@@ -36,7 +37,7 @@ export const validateUserLogin = (req, res, next) => {
   if (error) {
     throw new ExpressError(
       400,
-      error.details.map((err) => err.message).join(", ")
+      error.details.map((err) => err.message).join(", "),
     );
   }
 
@@ -51,7 +52,7 @@ export const validateCreateEmergency = (req, res, next) => {
   if (error) {
     throw new ExpressError(
       400,
-      error.details.map((err) => err.message).join(", ")
+      error.details.map((err) => err.message).join(", "),
     );
   }
 
@@ -66,7 +67,7 @@ export const validateCreateMission = (req, res, next) => {
   if (error) {
     throw new ExpressError(
       400,
-      error.details.map((err) => err.message).join(", ")
+      error.details.map((err) => err.message).join(", "),
     );
   }
 
@@ -81,7 +82,7 @@ export const validateCreateSafeZone = (req, res, next) => {
   if (error) {
     throw new ExpressError(
       400,
-      error.details.map((err) => err.message).join(", ")
+      error.details.map((err) => err.message).join(", "),
     );
   }
 
@@ -96,7 +97,7 @@ export const validateCreateVehicle = (req, res, next) => {
   if (error) {
     throw new ExpressError(
       400,
-      error.details.map((err) => err.message).join(", ")
+      error.details.map((err) => err.message).join(", "),
     );
   }
 
@@ -111,7 +112,7 @@ export const validateCreateVictimProfile = (req, res, next) => {
   if (error) {
     throw new ExpressError(
       400,
-      error.details.map((err) => err.message).join(", ")
+      error.details.map((err) => err.message).join(", "),
     );
   }
 
@@ -126,7 +127,7 @@ export const validateCreateRescueProfile = (req, res, next) => {
   if (error) {
     throw new ExpressError(
       400,
-      error.details.map((err) => err.message).join(", ")
+      error.details.map((err) => err.message).join(", "),
     );
   }
 
@@ -141,7 +142,7 @@ export const validateCreateLogisticsProfile = (req, res, next) => {
   if (error) {
     throw new ExpressError(
       400,
-      error.details.map((err) => err.message).join(", ")
+      error.details.map((err) => err.message).join(", "),
     );
   }
 
@@ -153,8 +154,20 @@ export const validateSub = (req, res, next) => {
   if (error) {
     throw new ExpressError(
       400,
-      error.details.map(err => err.message).join(", ")
+      error.details.map((err) => err.message).join(", "),
     );
   }
+  next();
+};
+
+export const validateNotification = (req, res, next) => {
+  const { error } = createNotificationSchema.validate(req.body);
+  if (error) {
+    throw new ExpressError(
+      400,
+      error.details.map((err) => err.message).join(","),
+    );
+  }
+
   next();
 };

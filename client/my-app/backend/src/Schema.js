@@ -74,7 +74,7 @@ export const createMissionSchema = Joi.object({
       Joi.string().hex().length(24).messages({
         "string.hex": "vehicleId must be a valid ObjectId",
         "string.length": "vehicleId must be 24 characters long",
-      })
+      }),
     )
     .min(1)
     .optional(),
@@ -83,7 +83,7 @@ export const createMissionSchema = Joi.object({
     .try(
       Joi.array(), // coordinate array
       Joi.object(), // GeoJSON / polyline object
-      Joi.string() // encoded polyline
+      Joi.string(), // encoded polyline
     )
     .optional(),
 
@@ -330,6 +330,48 @@ export const subSchema = Joi.object({
     auth: Joi.string().required(),
     p256dh: Joi.string().required(),
   }).required(),
+}).options({
+  abortEarly: false,
+  allowUnknown: false,
+});
+
+const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+
+export const createNotificationSchema = Joi.object({
+  userId: Joi.string().pattern(objectIdPattern).required(),
+
+  role: Joi.string()
+    .valid("victim", "rescue", "logistics")
+    .lowercase()
+    .default("victim"),
+
+  title: Joi.string().trim().min(1).required(),
+
+  message: Joi.string().trim().min(1).required(),
+
+  type: Joi.string()
+    .valid("emergency", "mission", "system")
+    .lowercase()
+    .default("emergency"),
+
+  read: Joi.boolean().default(false),
+
+  meta: Joi.object({
+    emergencyId: Joi.string().pattern(objectIdPattern).allow(null),
+
+    missionId: Joi.string().pattern(objectIdPattern).allow(null),
+
+    lat: Joi.number().min(-90).max(90).allow(null),
+
+    lng: Joi.number().min(-180).max(180).allow(null),
+
+    severity: Joi.string().valid("medium", "high", "critical").lowercase(),
+
+    deliveredVia: Joi.object({
+      socket: Joi.boolean().default(false),
+      push: Joi.boolean().default(false),
+    }),
+  }),
 }).options({
   abortEarly: false,
   allowUnknown: false,
