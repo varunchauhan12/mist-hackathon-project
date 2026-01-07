@@ -2,8 +2,10 @@ import Mission from "../models/Mission.js";
 import Emergency from "../models/Emergency.js";
 import Vehicle from "../models/Vehicle.js";
 import ExpressError from "../middlewares/expressError.js";
+import { decisionEngine } from "../engine/decisionEngine.js";
+import { EVENTS } from "../constants/events.js";
 
-export const createMission = async (data) => {
+export const createMission = async (data, io) => {
   const emergency = await Emergency.findById(data.emergencyId);
   if (!emergency) {
     throw new ExpressError(404, "Emergency not found");
@@ -16,7 +18,7 @@ export const createMission = async (data) => {
     );
   }
 
-  const mission = new Mission({
+  const mission = await Mission.create({
     emergencyId: data.emergencyId,
     rescueTeamId: data.rescueTeamId,
     vehiclesAssigned: data.vehiclesAssigned || [],
@@ -24,34 +26,49 @@ export const createMission = async (data) => {
     eta: data.eta,
   });
 
-  await mission.save();
-
   emergency.status = "assigned";
   emergency.assignedMissionId = mission._id;
   await emergency.save();
 
-  if (data.vehiclesAssigned && data.vehiclesAssigned.length > 0) {
+  await decisionEngine({
+    eventType: EVENTS.MISSION_ASSIGNED,
+    payload: {
+      missionId: mission._id,
+      rescueId: data.rescueTeamId,
+      emergencyId: emergency._id,
+      severity: emergency.severity,
+      message: "Mission assigned",
+    },
+    io,
+  });
+
+  if (data.vehiclesAssigned?.length) {
     await Vehicle.updateMany(
       { _id: { $in: data.vehiclesAssigned } },
-      {
-        status: "in-use",
-        assignedMissionId: mission._id,
-      }
+      { status: "in-use", assignedMissionId: mission._id }
     );
+
+    await decisionEngine({
+      eventType: EVENTS.VEHICLE_ALLOCATED,
+      payload: {
+        missionId: mission._id,
+        vehicleIds: data.vehiclesAssigned,
+        message: "Vehicles allocated to mission",
+      },
+      io,
+    });
   }
 
   return mission;
 };
 
 export const getRescueMissions = async (rescueUserId) => {
-  const missions = await Mission.find({ rescueTeamId: rescueUserId })
+  return Mission.find({ rescueTeamId: rescueUserId })
     .populate("emergencyId")
     .sort({ createdAt: -1 });
-
-  return missions;
 };
 
-export const updateMissionStatus = async (missionId, status) => {
+export const updateMissionStatus = async (missionId, status, io) => {
   const mission = await Mission.findById(missionId);
   if (!mission) {
     throw new ExpressError(404, "Mission not found");
@@ -74,6 +91,39 @@ export const updateMissionStatus = async (missionId, status) => {
       { assignedMissionId: mission._id },
       { status: "available", assignedMissionId: null }
     );
+
+    await decisionEngine({
+      eventType: EVENTS.MISSION_COMPLETED,
+      payload: {
+        missionId: mission._id,
+        emergencyId: mission.emergencyId,
+        message: "Mission completed successfully",
+      },
+      io,
+    });
+  }
+
+  if (status === "rejected") {
+    await decisionEngine({
+      eventType: EVENTS.MISSION_REJECTED,
+      payload: {
+        missionId: mission._id,
+        rescueId: mission.rescueTeamId,
+        message: "Mission rejected",
+      },
+      io,
+    });
+  }
+
+  if (status === "delayed") {
+    await decisionEngine({
+      eventType: EVENTS.MISSION_DELAYED,
+      payload: {
+        missionId: mission._id,
+        message: "Mission delayed",
+      },
+      io,
+    });
   }
 
   await mission.save();

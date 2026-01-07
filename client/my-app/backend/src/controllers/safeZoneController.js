@@ -1,107 +1,105 @@
 import SafeZone from "../models/SafeZone.js";
+import { decisionEngine } from "../engine/decisionEngine.js";
+import { EVENTS } from "../constants/events.js";
 
-// Create a new Safe Zone
-// POST /api/safe-zones
 export const createSafeZone = async (req, res) => {
-    const { name, location, capacity, facilities, status } = req.body;
+  const { name, location, capacity, facilities } = req.body;
 
-    // Add the creator as the last updater
-    const newZone = await SafeZone.create({
-        name,
-        location,
-        capacity,
-        facilities,
-        status,
-        lastUpdatedBy: req.user._id,
-    });
+  const zone = await SafeZone.create({
+    name,
+    location,
+    capacity,
+    facilities,
+    lastUpdatedBy: req.user._id,
+  });
 
-    res.status(201).json({
-        success: true,
-        data: newZone,
-    });
+  res.status(201).json({
+    success: true,
+    data: zone,
+  });
 };
 
-// Get all Safe Zones (with optional status filter)
-// GET /api/safe-zones?status=safe
 export const getAllSafeZones = async (req, res) => {
-    const { status } = req.query;
+  const zones = await SafeZone.find().sort({ createdAt: -1 });
 
-    // Build query object
-    let query = {};
-    if (status) {
-        query.status = status;
-    }
-
-    const zones = await SafeZone.find(query).sort({ createdAt: -1 });
-
-    res.status(200).json({
-        success: true,
-        count: zones.length,
-        data: zones,
-    });
+  res.status(200).json({
+    success: true,
+    count: zones.length,
+    data: zones,
+  });
 };
 
-// Get single Safe Zone
-// GET /api/safe-zones/:id
 export const getSafeZoneById = async (req, res) => {
-    const zone = await SafeZone.findById(req.params.id).populate(
-        "lastUpdatedBy",
-        "fullName email role"
-    );
+  const zone = await SafeZone.findById(req.params.id).populate(
+    "lastUpdatedBy",
+    "fullName email role"
+  );
 
-    if (!zone) {
-        throw new Error("Safe Zone not found"); // wrapAsync will catch this
-    }
+  if (!zone) {
+    throw new Error("Safe Zone not found");
+  }
 
-    res.status(200).json({
-        success: true,
-        data: zone,
-    });
+  res.status(200).json({
+    success: true,
+    data: zone,
+  });
 };
 
-// Update Safe Zone
-// PUT /api/safe-zones/:id
 export const updateSafeZone = async (req, res) => {
-    let zone = await SafeZone.findById(req.params.id);
+  let zone = await SafeZone.findById(req.params.id);
+  if (!zone) {
+    throw new Error("Safe Zone not found");
+  }
 
-    if (!zone) {
-        throw new Error("Safe Zone not found");
-    }
+  const updates = {
+    ...req.body,
+    lastUpdatedBy: req.user._id,
+  };
 
-    // Update fields
-    const updates = { ...req.body };
+  if (
+    updates.currentOccupancy !== undefined &&
+    updates.capacity !== undefined &&
+    updates.currentOccupancy > updates.capacity
+  ) {
+    throw new Error("Occupancy cannot exceed capacity");
+  }
 
-    // Force update the 'lastUpdatedBy' field
-    updates.lastUpdatedBy = req.user._id;
+  zone = await SafeZone.findByIdAndUpdate(req.params.id, updates, {
+    new: true,
+    runValidators: true,
+  });
 
-    // Manual check for capacity vs occupancy if both are present in update
-    if (updates.currentOccupancy && updates.capacity) {
-        if (updates.currentOccupancy > updates.capacity) {
-            throw new Error("Occupancy cannot exceed capacity");
-        }
-    }
+  if (zone.currentOccupancy >= zone.capacity && zone.status !== "unsafe") {
+    zone.status = "unsafe";
+    await zone.save();
 
-    zone = await SafeZone.findByIdAndUpdate(req.params.id, updates, {
-        new: true,
-        runValidators: true,
+    await decisionEngine({
+      eventType: EVENTS.SAFEZONE_OVERFLOW,
+      payload: {
+        safeZoneId: zone._id,
+        location: zone.location,
+        message: "Safe zone capacity exceeded",
+      },
+      io: req.app.get("io"),
     });
+  }
 
-    res.status(200).json({
-        success: true,
-        data: zone,
-    });
+  res.status(200).json({
+    success: true,
+    data: zone,
+  });
 };
 
-//    Delete Safe Zone
-//    DELETE /api/safe-zones/:id
 export const deleteSafeZone = async (req, res) => {
-    const zone = await SafeZone.findById(req.params.id);
-    if (!zone) {
-        throw new Error("Safe Zone not found");
-    }
-    await zone.deleteOne();
-    res.status(200).json({
-        success: true,
-        message: "Safe Zone deleted successfully",
-    });
+  const zone = await SafeZone.findById(req.params.id);
+  if (!zone) {
+    throw new Error("Safe Zone not found");
+  }
+
+  await zone.deleteOne();
+
+  res.status(200).json({
+    success: true,
+    message: "Safe Zone deleted successfully",
+  });
 };

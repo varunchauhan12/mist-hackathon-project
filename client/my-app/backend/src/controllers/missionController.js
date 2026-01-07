@@ -5,7 +5,7 @@ import {
 } from "../service/missionServices.js";
 
 export const makeMission = async (req, res) => {
-  const mission = await createMission(req.body);
+  const mission = await createMission(req.body , req.app.get("io"));
   res.status(201).json({ mission });
 };
 
@@ -22,6 +22,6 @@ export const changeMissionStatus = async (req, res) => {
   const { missionId } = req.params;
   const { status } = req.body;
 
-  const mission = await updateMissionStatus(missionId, status);
+  const mission = await updateMissionStatus(missionId, status,req.app.get("io"));
   res.status(200).json({ success: true, mission });
 };
