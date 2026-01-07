@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
+import { addUser, removeUser } from "../utils/socketRegistry.js";
 import ExpressError from "../middlewares/expressError.js";
 
 export const initSocket = (httpServer) => {
@@ -15,13 +16,13 @@ export const initSocket = (httpServer) => {
       const token = socket.handshake.auth.token;
       if (!token) {
         return next(
-          new ExpressError(401, "Authentication error: Token not provided")
+          new ExpressError(401, "Authentication error: Token not provided"),
         );
       }
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       if (!decoded) {
         return next(
-          new ExpressError(401, "Authentication error: Invalid token")
+          new ExpressError(401, "Authentication error: Invalid token"),
         );
       }
 
@@ -34,8 +35,10 @@ export const initSocket = (httpServer) => {
   });
 
   io.on("connection", (socket) => {
-    socket.join(socket.role); // Join room based on role
     console.log("New user connected:", socket.id);
+
+    addUser(socket.userId, socket.id);
+    socket.join(socket.role); // Join room based on role
 
     //socket handlers
     require("../socket/locationHandler")(io, socket);
@@ -43,6 +46,7 @@ export const initSocket = (httpServer) => {
 
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
+      removeUser(socket.userId);
     });
   });
 };
