@@ -44,15 +44,15 @@ export const API_ENDPOINTS = {
   ALL_EMERGENCIES: "/emergency",
   UPDATE_EMERGENCY_STATUS: (id: string) => `/emergency/${id}/status`,
 
-  // Safe Zones (you might need to add these routes in backend)
+  // Safe Zones 
   SAFE_ZONES: "/safe-zones",
   NEARBY_SAFE_ZONES: "/safe-zones/nearby",
 
-  // Notifications (add to backend)
+  // Notifications 
   NOTIFICATIONS: "/notifications",
   MARK_READ: (id: string) => `/notifications/${id}/read`,
 
-  // Resources (add to backend)
+  // Resources 
   ALLOCATE_RESOURCE: "/resources/allocate",
   MY_ALLOCATIONS: "/resources/my-allocations",
   ALL_ALLOCATIONS: "/resources/allocations",

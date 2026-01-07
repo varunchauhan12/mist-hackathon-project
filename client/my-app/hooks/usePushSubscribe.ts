@@ -13,9 +13,10 @@ export async function subscribeUser() {
     ),
   });
 
-  await fetch("http://localhost:5000/api/subscribe", {
+  await fetch("http://localhost:5000/api/subscriptions/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include", 
     body: JSON.stringify(sub),
   });
 }
@@ -23,5 +24,5 @@ export async function subscribeUser() {
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 }

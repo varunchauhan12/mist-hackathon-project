@@ -1,3 +1,6 @@
+
+"use client";
+
 import { useEffect, useRef } from "react";
 import { socket } from "@/lib/socket";
 
