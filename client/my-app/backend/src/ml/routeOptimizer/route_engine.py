@@ -1,22 +1,33 @@
-import osmnx as ox
 import networkx as nx
+import osmnx as ox
 
-def compute_routes(G, start, end):
-    start_node = ox.nearest_nodes(G, start[1], start[0])
-    end_node   = ox.nearest_nodes(G, end[1], end[0])
+def compute_routes(G, start, end, context):
+    start_lat, start_lng = start
+    end_lat, end_lng = end
 
-    fast_route = nx.shortest_path(
+    # 🔑 Convert coordinates to graph node IDs
+    start_node = ox.distance.nearest_nodes(G, start_lng, start_lat)
+    end_node = ox.distance.nearest_nodes(G, end_lng, end_lat)
+
+    # Fast route (shortest distance)
+    fast_path = nx.shortest_path(
         G,
         start_node,
         end_node,
         weight="length"
     )
 
-    safe_route = nx.shortest_path(
+    # Safe route (ML-based weight)
+    def safe_weight(u, v, data):
+        from risk_predictor import predict_edge_risk
+        risk = predict_edge_risk(data, context)
+        return data.get("length", 1) * (1 + 3 * risk)
+
+    safe_path = nx.shortest_path(
         G,
         start_node,
         end_node,
-        weight="risk_weight"
+        weight=safe_weight
     )
 
-    return fast_route, safe_route
+    return fast_path, safe_path

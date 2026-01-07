@@ -10,5 +10,4 @@ G = ox.graph_from_place(
     simplify=True
 )
 
-G = ox.add_edge_lengths(G)
 print("Graph loaded:", len(G.nodes), "nodes")
