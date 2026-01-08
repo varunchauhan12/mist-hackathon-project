@@ -1,15 +1,22 @@
-const onlineUsers = new Map();
+export const onlineUsers = new Map();
 
 export const addUser = (userId, socketId) => {
-  onlineUsers.set(userId.toString(), socketId);
+  if (!userId) {
+    console.error("❌ addUser called with invalid userId");
+    return;
+  }
+
+  onlineUsers.set(String(userId), socketId);
 };
 
 export const removeUser = (userId) => {
-  onlineUsers.delete(userId.toString());
+  if (!userId) return;
+  onlineUsers.delete(String(userId));
 };
 
+
 export const getSocketId = (userId) => {
-  return onlineUsers.get(userId.toString());
+  return onlineUsers.get(String(userId));
 };
 
 export const getAllOnlineUsers = () => {
