@@ -5,7 +5,8 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-import { AuthProvider } from "@/app/providers/AuthProvider";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { SocketProvider } from "@/contexts/SocketContext";
 import LocationProvider from "@/app/providers/LocationProvider";
 
 const geistSans = Geist({
@@ -35,21 +36,20 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <LocationProvider>
-            <div className="flex flex-col min-h-screen w-full overflow-x-hidden scroll-smooth bg-gradient-to-tr from-green-50 via-white to-lime-50">
-              
-              {/* Navbar */}
-              <Navbar />
+          <SocketProvider>
+            <LocationProvider>
+              <div className="flex flex-col min-h-screen w-full overflow-x-hidden scroll-smooth bg-gradient-to-tr from-green-50 via-white to-lime-50">
+                {/* Navbar */}
+                <Navbar />
 
-              {/* Main Content */}
-              <main className="flex-1 mt-24">
-                {children}
-              </main>
+                {/* Main Content */}
+                <main className="flex-1 mt-24">{children}</main>
 
-              {/* Footer */}
-              <Footer />
-            </div>
-          </LocationProvider>
+                {/* Footer */}
+                <Footer />
+              </div>
+            </LocationProvider>
+          </SocketProvider>
         </AuthProvider>
       </body>
     </html>
