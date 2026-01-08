@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import emergencyApi from "@/lib/api/emergencyApi";
 import { Emergency, CreateEmergencyData } from "@/types";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/app/providers/AuthProvider";
 
 export const useEmergencies = () => {
   const { user } = useAuth();

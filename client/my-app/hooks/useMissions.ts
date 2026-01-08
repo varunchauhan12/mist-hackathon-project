@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import apiClient from "@/lib/api/client";
 import missionApi from "@/lib/api/missionApi";
 import { Mission, MissionStatus } from "@/types";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/app/providers/AuthProvider";
 
 export function useMissions() {
   const { user } = useAuth();
