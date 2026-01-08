@@ -1,7 +1,7 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
+import cookie from "cookie";
 import { addUser, removeUser } from "../utils/socketRegistry.js";
-import ExpressError from "../middlewares/expressError.js";
 
 export const initSocket = (httpServer) => {
   const io = new Server(httpServer, {
@@ -11,42 +11,41 @@ export const initSocket = (httpServer) => {
     },
   });
 
+  /* 🔐 COOKIE-BASED SOCKET AUTH */
   io.use((socket, next) => {
     try {
-      const token = socket.handshake.auth.token;
-      if (!token) {
-        return next(
-          new ExpressError(401, "Authentication error: Token not provided"),
-        );
+      const cookies = cookie.parse(socket.handshake.headers.cookie || "");
+      const accessToken = cookies.accessToken;
+
+      if (!accessToken) {
+        return next(new Error("Authentication error: Token not provided"));
       }
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (!decoded) {
-        return next(
-          new ExpressError(401, "Authentication error: Invalid token"),
-        );
-      }
+
+      const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
 
       socket.userId = decoded.id;
       socket.role = decoded.role;
+
       next();
     } catch (err) {
-      return next(new ExpressError(401, "Authentication error"));
+      return next(new Error("Authentication error"));
     }
   });
 
   io.on("connection", (socket) => {
-    console.log("New user connected:", socket.id);
+    console.log("✅ Socket connected:", socket.id);
 
     addUser(socket.userId, socket.id);
-    socket.join(socket.role); // Join room based on role
+    socket.join(socket.role);
 
-    //socket handlers
-    require("../socket/locationHandler")(io, socket);
-    require("../socket/rescueChatHandler")(io, socket);
+    require("../socket/locationHandler.js")(io, socket);
+    require("../socket/rescueChatHandler.js")(io, socket);
 
     socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
+      console.log("❌ Socket disconnected:", socket.id);
       removeUser(socket.userId);
     });
   });
+
+  return io;
 };
