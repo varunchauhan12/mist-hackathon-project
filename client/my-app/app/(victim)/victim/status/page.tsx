@@ -59,6 +59,7 @@ const statusStyle: Record<Status, string> = {
   resolved: "bg-green-500/20 text-green-300 border-green-400",
 };
 
+/* ---------- Page ---------- */
 export default function MyRequestsPage() {
   const [requests, setRequests] = useState<EmergencyRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +73,12 @@ export default function MyRequestsPage() {
     try {
       setLoading(true);
       const res = await apiClient.get("/emergencies/my");
-      setRequests(res.data.emergencies || []);
+
+      const list = Array.isArray(res.data?.emergencies)
+        ? res.data.emergencies
+        : [];
+
+      setRequests(list);
     } catch (err: any) {
       setError(err.message || "Failed to load requests");
     } finally {
@@ -160,7 +166,6 @@ export default function MyRequestsPage() {
                 className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden"
               >
                 <div className="p-6">
-                  {/* Header */}
                   <div className="flex justify-between mb-4">
                     <div className="flex gap-4">
                       <div className="p-3 rounded-xl bg-white/5 border border-white/10">
@@ -191,7 +196,6 @@ export default function MyRequestsPage() {
                     </div>
                   </div>
 
-                  {/* Details */}
                   <div className="space-y-4 text-lg">
                     <div className="grid grid-cols-3 gap-4">
                       <span className="text-gray-400">Situation</span>
@@ -210,7 +214,6 @@ export default function MyRequestsPage() {
                       </span>
                     </div>
 
-                    {/* UI-only */}
                     <div className="grid grid-cols-3 gap-4">
                       <span className="text-gray-400 flex gap-2 items-center">
                         <Users className="w-4 h-4" /> People
@@ -222,7 +225,6 @@ export default function MyRequestsPage() {
                   </div>
                 </div>
 
-                {/* Banner */}
                 {req.status === "pending" && (
                   <div className="bg-yellow-500/20 border-t border-yellow-500/40 px-6 py-3">
                     ⏳ Request received. Processing…

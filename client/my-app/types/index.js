@@ -234,3 +234,10 @@ export interface OptimizeRouteData {
   end: Location;
   context?: any;
 }
+
+export interface RescueUser {
+  _id: string;
+  name: string;
+  role: "rescue";
+  email?: string;
+}

@@ -1,45 +1,22 @@
-import axios, { AxiosInstance, AxiosError } from "axios";
+import axios from "axios";
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-
-export const apiClient: AxiosInstance = axios.create({
-  baseURL: BASE_URL,
-  withCredentials: true, // ✅ REQUIRED for cookies
+const apiClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 30000,
 });
 
-// Response interceptor (refresh only, no redirects)
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as any;
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
 
-    if (
-      error.response?.status === 401 &&
-      !originalRequest?._retry
-    ) {
-      originalRequest._retry = true;
-
-      try {
-        await axios.post(
-          `${BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
-
-        return apiClient(originalRequest);
-      } catch {
-        // ❌ NEVER redirect from here
-        return Promise.reject(error);
-      }
-    }
-
-    return Promise.reject(error);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-);
+
+  return config;
+});
 
 export default apiClient;
+

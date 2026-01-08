@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/app/providers/AuthProvider";
 import { socket } from "@/lib/socket";
 import { useLiveLocation } from "@/hooks/useLiveLocation";
 

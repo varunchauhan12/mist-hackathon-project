@@ -1,4 +1,4 @@
-const User = require("../models/User");
+import User from "../models/User.js";
 
 const DISTANCE_LIMIT_KM = 5; 
 
@@ -18,7 +18,7 @@ function getDistanceKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-module.exports = (io, socket) => {
+export default function rescueChatHandler(io, socket) {
   socket.on("rescue:join-nearby", async ({ lat, lng }) => {
     if (socket.role !== "rescue") return;
     if (lat == null || lng == null) return;

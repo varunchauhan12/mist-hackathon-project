@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { socket } from "@/lib/socket";
 
-type RescueMessage = {
+export type RescueMessage = {
   senderId: string;
   message: string;
   timestamp: string | Date;
@@ -11,30 +11,35 @@ type RescueMessage = {
 
 export const useRescueChat = (lat: number | null, lng: number | null) => {
   const [messages, setMessages] = useState<RescueMessage[]>([]);
+  const [roomId, setRoomId] = useState<string | null>(null);
 
   useEffect(() => {
     if (lat == null || lng == null) return;
 
     socket.emit("rescue:join-nearby", { lat, lng });
 
-    const handleNewMessage = (msg: RescueMessage) => {
+    const handleJoined = ({ roomId }: { roomId: string }) => {
+      setRoomId(roomId);
+      setMessages([]); // ✅ reset chat when room changes
+    };
+
+    const handleMessage = (msg: RescueMessage) => {
       setMessages((prev) => [...prev, msg]);
     };
 
-    socket.on("rescue:new-message", handleNewMessage);
+    socket.on("rescue:joined-room", handleJoined);
+    socket.on("rescue:new-message", handleMessage);
 
     return () => {
-      socket.off("rescue:new-message", handleNewMessage);
+      socket.off("rescue:joined-room", handleJoined);
+      socket.off("rescue:new-message", handleMessage);
     };
   }, [lat, lng]);
 
   const sendMessage = (message: string) => {
-    if (!message.trim()) return;
+    if (!message.trim() || !roomId) return;
     socket.emit("rescue:send-message", { message });
   };
 
-  return {
-    messages,
-    sendMessage,
-  };
+  return { messages, roomId, sendMessage };
 };

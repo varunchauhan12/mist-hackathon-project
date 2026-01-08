@@ -4,10 +4,7 @@ import "./globals.css";
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
-import { AuthProvider } from "@/contexts/AuthContext";
-import { SocketProvider } from "@/contexts/SocketContext";
-import LocationProvider from "@/app/providers/LocationProvider";
+import Providers from "@/app/providers/Providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,24 +32,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* 🔐 Auth first */}
-        <AuthProvider>
-          {/* 🔌 Socket depends on auth */}
-          <SocketProvider>
-            {/* 📍 Location depends on auth */}
-            <LocationProvider>
-              <div className="flex flex-col min-h-screen w-full overflow-x-hidden scroll-smooth bg-gradient-to-tr from-green-50 via-white to-lime-50">
-                <Navbar />
+        <Providers>
+          <div className="flex flex-col min-h-screen w-full overflow-x-hidden scroll-smooth bg-gradient-to-tr from-green-50 via-white to-lime-50">
+            <Navbar />
 
-                <main className="flex-1 mt-24">
-                  {children}
-                </main>
+            <main className="flex-1 mt-24">
+              {children}
+            </main>
 
-                <Footer />
-              </div>
-            </LocationProvider>
-          </SocketProvider>
-        </AuthProvider>
+            <Footer />
+          </div>
+        </Providers>
       </body>
     </html>
   );

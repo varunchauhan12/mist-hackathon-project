@@ -8,11 +8,15 @@ import {
   MapPin,
   MessageCircle,
   Send,
-  Circle,
   X,
   Navigation,
   Clock,
 } from "lucide-react";
+import { socket } from "@/lib/socket";
+import { useAuth } from "@/app/providers/AuthProvider";
+import { useLiveLocation } from "@/hooks/useLiveLocation";
+import { useRescueChat } from "@/hooks/useRescueChat";
+import { useRouteUpdates } from "@/hooks/useRouteUpdates";
 
 /* ------------------ TYPES ------------------ */
 interface Team {
@@ -24,138 +28,148 @@ interface Team {
   status: "available" | "on-mission" | "offline";
   members: number;
   lastUpdate: string;
-  mission?: string;
+  userId: string;
 }
 
 interface Message {
-  id: number;
+  id: string;
   sender: string;
-  text: string;
-  time: string;
-  own: boolean;
+  senderId?: string;
+  text?: string;
+  message?: string;
+  timestamp?: string | Date;
+  time?: string;
 }
 
-/* ------------------ MOCK DATA ------------------ */
-const MOCK_TEAMS: Team[] = [
-  {
-    id: "T-001",
-    name: "Alpha Team",
-    location: "Connaught Place",
-    position: [28.6304, 77.2177],
-    distance: 2.3,
-    status: "available",
-    members: 5,
-    lastUpdate: "2 min ago",
-  },
-  {
-    id: "T-002",
-    name: "Bravo Team",
-    location: "Karol Bagh",
-    position: [28.6519, 77.1909],
-    distance: 3.8,
-    status: "on-mission",
-    members: 6,
-    mission: "Medical Emergency",
-    lastUpdate: "5 min ago",
-  },
-  {
-    id: "T-003",
-    name: "Charlie Team",
-    location: "Nehru Place",
-    position: [28.5494, 77.2501],
-    distance: 5.2,
-    status: "available",
-    members: 4,
-    lastUpdate: "1 min ago",
-  },
-  {
-    id: "T-004",
-    name: "Delta Team",
-    location: "Dwarka",
-    position: [28.5921, 77.046],
-    distance: 8.5,
-    status: "on-mission",
-    members: 5,
-    mission: "Fire Rescue",
-    lastUpdate: "10 min ago",
-  },
-  {
-    id: "T-005",
-    name: "Echo Team",
-    location: "Rohini",
-    position: [28.7496, 77.0669],
-    distance: 12.1,
-    status: "available",
-    members: 7,
-    lastUpdate: "3 min ago",
-  },
-];
+/* ------------------ GEO UTILS ------------------ */
+const getDistanceMeters = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number => {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
 
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: 1,
-    sender: "Alpha Team",
-    text: "We're approaching the zone. ETA 5 minutes.",
-    time: "10:34 AM",
-    own: false,
-  },
-  {
-    id: 2,
-    sender: "You",
-    text: "Copy that. We need backup at Sector 12.",
-    time: "10:35 AM",
-    own: true,
-  },
-  {
-    id: 3,
-    sender: "Bravo Team",
-    text: "Currently engaged. Charlie Team can assist.",
-    time: "10:36 AM",
-    own: false,
-  },
-];
+const getStatusStyle = (status: Team["status"]) => {
+  switch (status) {
+    case "available":
+      return { dot: "bg-green-400", text: "text-green-400", border: "border-green-500/30" };
+    case "on-mission":
+      return { dot: "bg-yellow-400", text: "text-yellow-400", border: "border-yellow-500/30" };
+    default:
+      return { dot: "bg-gray-400", text: "text-gray-400", border: "border-gray-500/30" };
+  }
+};
 
 export default function TeamCoordination() {
+  // ✅ ALL STATE DECLARED FIRST
   const [mounted, setMounted] = useState(false);
-  const [myPosition] = useState<[number, number]>([28.6139, 77.209]);
+  const [nearbyTeams, setNearbyTeams] = useState<Team[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const [message, setMessage] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [routeData, setRouteData] = useState<any>(null);
+  const [message, setMessage] = useState(""); // ✅ FIXED: Missing message state
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // ✅ SAFE: useAuth AFTER "use client" & inside AuthProvider
+  const { user, loading: authLoading } = useAuth();
+
+  // ✅ Custom hooks - SAFE with loading guards
+  const liveLocation = useLiveLocation(user?.role === "rescue" ? "rescue" : null);
+  const { position: myPosition } = liveLocation || {};
+  const chatData = useRescueChat(myPosition?.lat, myPosition?.lng);
+  const { messages = [], sendMessage: chatSendMessage } = chatData || {};
+  const routeUpdates = useRouteUpdates();
+
+  // ✅ Socket: Nearby teams (10km radius only)
   useEffect(() => {
-    setMounted(true);
+    if (!user?.id || user.role !== "rescue" || !myPosition?.lat || !myPosition?.lng) return;
+
+    const handleRescueLocation = ({ userId, lat, lng }: { userId: string; lat: number; lng: number }) => {
+      // Skip self
+      if (userId === user.id) return;
+
+      const distKm = getDistanceMeters(myPosition.lat, myPosition.lng, lat, lng) / 1000;
+      if (distKm > 10) {
+        setNearbyTeams((prev) => prev.filter((t) => t.userId !== userId));
+        return;
+      }
+
+      const team: Team = {
+        id: userId,
+        userId,
+        name: `Team ${userId.slice(-4).toUpperCase()}`,
+        location: `${lat.toFixed(3)}, ${lng.toFixed(3)}`,
+        position: [lat, lng],
+        distance: +distKm.toFixed(1),
+        status: "available",
+        members: 4 + Math.floor(Math.random() * 3),
+        lastUpdate: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      setNearbyTeams((prev) => {
+        const exists = prev.find((t) => t.id === userId);
+        return exists
+          ? prev.map((t) => (t.id === userId ? team : t))
+          : [team, ...prev].slice(0, 10);
+      });
+    };
+
+    socket.on("rescueLocation", handleRescueLocation);
+    socket.emit("rescue:join-nearby", { lat: myPosition.lat, lng: myPosition.lng });
+
+    return () => socket.off("rescueLocation", handleRescueLocation);
+  }, [user, myPosition]);
+
+  // ✅ Socket: Routes
+  useEffect(() => {
+    const handleRouteUpdate = (route: any) => {
+      setRouteData(route);
+      setShowRoute(true);
+    };
+    const handleRouteError = (error: any) => console.error("Route error:", error);
+
+    socket.on("route:update", handleRouteUpdate);
+    socket.on("route:error", handleRouteError);
+
+    return () => {
+      socket.off("route:update", handleRouteUpdate);
+      socket.off("route:error", handleRouteError);
+    };
   }, []);
 
+  // ✅ Route updates from hook
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (routeUpdates) {
+      setRouteData(routeUpdates);
+      setShowRoute(true);
+    }
+  }, [routeUpdates]);
 
-  const getStatusStyle = (status: Team["status"]) => {
-    switch (status) {
-      case "available":
-        return {
-          bg: "bg-green-500/20",
-          border: "border-green-500/40",
-          text: "text-green-400",
-          dot: "bg-green-400",
-        };
-      case "on-mission":
-        return {
-          bg: "bg-orange-500/20",
-          border: "border-orange-500/40",
-          text: "text-orange-400",
-          dot: "bg-orange-400",
-        };
-      case "offline":
-        return {
-          bg: "bg-gray-500/20",
-          border: "border-gray-500/40",
-          text: "text-gray-400",
-          dot: "bg-gray-400",
-        };
+  // ✅ Lifecycle
+  useEffect(() => setMounted(true), []);
+  useEffect(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
+
+  // ✅ Event handlers - SAFE
+  const handleSendMessage = () => {
+    if (!message.trim() || typeof chatSendMessage !== "function") return;
+    chatSendMessage(message);
+    setMessage("");
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
 
@@ -165,47 +179,44 @@ export default function TeamCoordination() {
   };
 
   const handleStartNavigation = () => {
-    if (!selectedTeam) return;
-    setShowRoute(true);
+    if (!selectedTeam || !myPosition) return;
     setShowModal(false);
-    alert(`Navigation started to ${selectedTeam.name}`);
+    socket.emit("route:request", {
+      start: [myPosition.lat, myPosition.lng],
+      end: selectedTeam.position,
+      teamId: selectedTeam.id,
+    });
   };
 
-  const handleSendMessage = () => {
-    if (!message.trim()) return;
+  // ✅ FIXED: Comprehensive loading guard
+  if (!mounted || authLoading || !user || user.role !== "rescue") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#020617] via-[#0c4a6e] to-[#0f172a]">
+        <div className="text-center text-white">
+          <Users className="mx-auto h-12 w-12 text-cyan-400 animate-spin" />
+          <h2 className="mt-4 text-2xl font-bold">Loading Team Coordination...</h2>
+          <p className="mt-2 text-gray-400">
+            {authLoading 
+              ? "Authenticating..." 
+              : !user 
+                ? "Please login first" 
+                : "Rescue team access only"
+            }
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-    const newMessage: Message = {
-      id: messages.length + 1,
-      sender: "You",
-      text: message,
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      own: true,
-    };
-
-    setMessages([...messages, newMessage]);
-    setMessage("");
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSendMessage();
-    }
-  };
-
-  if (!mounted) return null;
-
-  // Convert teams to SafeZone format for map compatibility
-  const teamsAsSafeZones = MOCK_TEAMS.map((team) => ({
+  // ✅ Map adapter
+  const teamsAsSafeZones = nearbyTeams.map((team) => ({
     id: team.id,
     name: team.name,
     type: "Team",
     position: team.position,
-    status: team.status === "available" ? "available" as const : "near-capacity" as const,
+    status: "available",
     distance: team.distance,
-    eta: Math.round(team.distance * 15), // Rough ETA calculation
+    eta: Math.round(team.distance * 15),
     occupancy: {
       current: team.members,
       capacity: 10,
@@ -222,53 +233,46 @@ export default function TeamCoordination() {
       <Sidebar role="rescue" />
 
       <main className="flex-1 p-8 overflow-y-auto">
-        {/* Header */}
         <div className="mb-6">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Team Coordination Hub
-          </h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Team Coordination Hub</h1>
           <p className="text-cyan-300">
-            Real-time collaboration with nearby rescue teams
+            Real-time collaboration ({nearbyTeams.length} teams)
+            {myPosition && (
+              <span className="text-gray-400 text-sm ml-4">
+                • {myPosition.lat?.toFixed(4)}, {myPosition.lng?.toFixed(4)}
+              </span>
+            )}
           </p>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* LEFT SECTION */}
+          {/* LEFT: Teams + Map */}
           <div className="xl:col-span-2 space-y-6">
-            {/* Nearby Teams List */}
+            {/* Teams List */}
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
               <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Users size={20} className="text-cyan-400" />
-                Nearby Teams ({MOCK_TEAMS.length})
+                Nearby Rescue Teams ({nearbyTeams.length})
               </h3>
-
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                {MOCK_TEAMS.map((team) => {
+                {nearbyTeams.map((team) => {
                   const colors = getStatusStyle(team.status);
                   return (
                     <div
                       key={team.id}
                       onClick={() => handleTeamSelect(team)}
-                      className={`bg-gradient-to-r from-gray-800/50 to-gray-900/30 border ${colors.border} rounded-xl p-4 hover:border-cyan-500/50 transition-all cursor-pointer`}
+                      className={`p-4 rounded-xl border ${colors.border} bg-gradient-to-r from-gray-800/50 to-gray-900/30 hover:border-cyan-500/50 transition-all cursor-pointer`}
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div
-                            className={`w-3 h-3 rounded-full ${colors.dot} ${
-                              team.status !== "offline" ? "animate-pulse" : ""
-                            }`}
-                          />
+                          <div className={`w-3 h-3 rounded-full ${colors.dot} animate-pulse`} />
                           <div>
-                            <h4 className="text-white font-semibold text-lg">
-                              {team.name}
-                            </h4>
+                            <h4 className="text-white font-semibold text-lg">{team.name}</h4>
                             <p className="text-gray-400 text-sm flex items-center gap-2">
-                              <MapPin size={14} />
-                              {team.location}
+                              <MapPin size={14} /> {team.location}
                             </p>
                           </div>
                         </div>
-
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -279,48 +283,37 @@ export default function TeamCoordination() {
                           <Navigation size={18} />
                         </button>
                       </div>
-
                       <div className="grid grid-cols-3 gap-3 text-sm">
                         <div>
                           <p className="text-gray-500 text-xs">Distance</p>
-                          <p className="text-white font-semibold">
-                            {team.distance} km
-                          </p>
+                          <p className="text-white font-semibold">{team.distance} km</p>
                         </div>
                         <div>
                           <p className="text-gray-500 text-xs">Members</p>
-                          <p className="text-white font-semibold">
-                            {team.members}
-                          </p>
+                          <p className="text-white font-semibold">{team.members}</p>
                         </div>
                         <div>
                           <p className="text-gray-500 text-xs">Status</p>
-                          <p
-                            className={`${colors.text} font-semibold capitalize text-xs`}
-                          >
+                          <p className={`${colors.text} font-semibold capitalize text-xs`}>
                             {team.status.replace("-", " ")}
                           </p>
                         </div>
                       </div>
-
-                      {team.mission && (
-                        <div className="mt-3 pt-3 border-t border-gray-700">
-                          <p className="text-orange-400 text-sm flex items-center gap-2">
-                            <Circle size={8} className="fill-current" />
-                            Active Mission: {team.mission}
-                          </p>
-                        </div>
-                      )}
-
                       <div className="mt-3 pt-3 border-t border-gray-700">
-                        <p className="text-gray-500 text-xs flex items-center gap-2">
-                          <Clock size={12} />
-                          Last update: {team.lastUpdate}
+                        <p className="text-gray-400 text-xs flex items-center gap-2">
+                          <Clock size={12} /> Last update: {team.lastUpdate}
                         </p>
                       </div>
                     </div>
                   );
                 })}
+                {nearbyTeams.length === 0 && (
+                  <div className="text-center py-12 text-gray-400">
+                    <Users className="mx-auto h-12 w-12 opacity-50 mb-4" />
+                    <p>No nearby teams found</p>
+                    <p className="text-sm mt-1">Move around to discover teams</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -330,42 +323,38 @@ export default function TeamCoordination() {
                 <MapPin size={20} className="text-cyan-400" />
                 Teams Location Map
               </h3>
-
               <div className="rounded-xl overflow-hidden border border-white/5">
                 <SafeZoneMap
-                  userPosition={myPosition}
+                  userPosition={myPosition ? [myPosition.lat, myPosition.lng] : [28.6139, 77.209]}
                   safeZones={teamsAsSafeZones}
                   selectedZone={
-                    selectedTeam
-                      ? teamsAsSafeZones.find((z) => z.id === selectedTeam.id) || null
-                      : null
+                    selectedTeam ? teamsAsSafeZones.find((z) => z.id === selectedTeam.id) || null : null
                   }
                   onZoneClick={(zone) => {
-                    const team = MOCK_TEAMS.find((t) => t.id === zone.id);
+                    const team = nearbyTeams.find((t) => t.id === zone.id);
                     if (team) handleTeamSelect(team);
                   }}
+                  route={showRoute ? routeData : null}
                   showRoute={showRoute}
                   className="h-[400px]"
                 />
               </div>
-
-              {selectedTeam && showRoute && (
+              {selectedTeam && showRoute && routeData && (
                 <div className="mt-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/40 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-cyan-400 text-sm font-semibold mb-1">
-                        Navigating to
-                      </p>
-                      <p className="text-white font-bold text-lg">
-                        {selectedTeam.name}
-                      </p>
+                      <p className="text-cyan-400 text-sm font-semibold mb-1">Navigating to</p>
+                      <p className="text-white font-bold text-lg">{selectedTeam.name}</p>
                       <p className="text-gray-400 text-sm">
                         {selectedTeam.location} • {selectedTeam.distance} km
                       </p>
                     </div>
                     <button
-                      onClick={() => setShowRoute(false)}
-                      className="px-4 py-2 bg-red-500/20 border border-red-500/40 text-red-400 rounded-lg font-semibold hover:bg-red-500/30 transition-colors"
+                      onClick={() => {
+                        setShowRoute(false);
+                        setRouteData(null);
+                      }}
+                      className="px-4 py-2 bg-red-500/20 border border-red-500/40 text-red-400 rounded-lg font-semibold hover:bg-red-500/30"
                     >
                       Stop
                     </button>
@@ -375,65 +364,62 @@ export default function TeamCoordination() {
             </div>
           </div>
 
-          {/* RIGHT SECTION - CHAT */}
+          {/* Chat */}
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 flex flex-col h-[calc(100vh-120px)]">
-            {/* Chat Header */}
             <div className="flex items-center gap-3 pb-4 border-b border-white/10">
               <div className="p-2 bg-cyan-500/10 rounded-lg">
                 <MessageCircle className="text-cyan-400" size={20} />
               </div>
               <div>
-                <p className="text-white font-semibold">Team Chat</p>
+                <p className="text-white font-semibold">Nearby Team Chat</p>
                 <p className="text-xs text-gray-400">
-                  {selectedTeam
-                    ? `With ${selectedTeam.name}`
-                    : "Select a team to start"}
+                  {messages.length > 0 ? `${messages.length} messages` : "Connect with teams"}
                 </p>
               </div>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-2">
-              {messages.map((msg) => (
+              {messages.map((msg: any, index: number) => (
                 <div
-                  key={msg.id}
-                  className={`flex ${msg.own ? "justify-end" : "justify-start"}`}
+                  key={msg.id || msg.timestamp || index}
+                  className={`flex ${msg.senderId === user.id ? "justify-end" : "justify-start"}`}
                 >
                   <div
                     className={`px-4 py-2 rounded-xl text-sm max-w-[80%] ${
-                      msg.own
+                      msg.senderId === user.id
                         ? "bg-cyan-500 text-slate-900"
                         : "bg-gray-800 text-white border border-gray-700"
                     }`}
                   >
-                    {!msg.own && (
-                      <p className="text-xs opacity-70 mb-1 font-semibold">
-                        {msg.sender}
-                      </p>
+                    {msg.senderId !== user.id && (
+                      <p className="text-xs opacity-70 mb-1 font-semibold">Team Member</p>
                     )}
-                    <p>{msg.text}</p>
+                    <p>{msg.message || msg.text}</p>
                     <p className="text-[10px] opacity-70 text-right mt-1">
-                      {msg.time}
-                                          </p>
+                      {new Date(msg.timestamp || msg.time || Date.now()).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
                   </div>
                 </div>
               ))}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
             <div className="pt-4 border-t border-white/10">
               <div className="flex gap-3">
                 <input
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Type your message..."
+                  placeholder="Send message to nearby teams..."
                   className="flex-1 px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
                 />
                 <button
                   onClick={handleSendMessage}
-                  className="px-4 py-2 rounded-lg bg-cyan-500 text-slate-900 font-semibold hover:bg-cyan-400 transition-colors flex items-center gap-2"
+                  disabled={!message.trim()}
+                  className="px-4 py-2 rounded-lg bg-cyan-500 text-slate-900 font-semibold hover:bg-cyan-400 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send size={16} />
                   Send
@@ -448,9 +434,7 @@ export default function TeamCoordination() {
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-white">
-                  Navigate to Team
-                </h3>
+                <h3 className="text-xl font-bold text-white">Navigate to Team</h3>
                 <button
                   onClick={() => setShowModal(false)}
                   className="p-2 hover:bg-white/10 rounded-lg transition-colors"
@@ -458,62 +442,33 @@ export default function TeamCoordination() {
                   <X className="text-gray-400" size={20} />
                 </button>
               </div>
-
-              {/* Team Info */}
               <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      getStatusStyle(selectedTeam.status).dot
-                    } animate-pulse`}
-                  />
+                  <div className={`w-3 h-3 rounded-full ${getStatusStyle(selectedTeam.status).dot} animate-pulse`} />
                   <div>
-                    <p className="text-white font-bold text-lg">
-                      {selectedTeam.name}
-                    </p>
+                    <p className="text-white font-bold text-lg">{selectedTeam.name}</p>
                     <p className="text-gray-400 text-sm flex items-center gap-2">
-                      <MapPin size={14} />
-                      {selectedTeam.location}
+                      <MapPin size={14} /> {selectedTeam.location}
                     </p>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-3 gap-3 text-sm">
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <p className="text-gray-500 text-xs mb-1">Distance</p>
-                    <p className="text-white font-bold">
-                      {selectedTeam.distance} km
-                    </p>
+                    <p className="text-white font-bold">{selectedTeam.distance} km</p>
                   </div>
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <p className="text-gray-500 text-xs mb-1">Members</p>
-                    <p className="text-white font-bold">
-                      {selectedTeam.members}
-                    </p>
+                    <p className="text-white font-bold">{selectedTeam.members}</p>
                   </div>
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <p className="text-gray-500 text-xs mb-1">Status</p>
-                    <p
-                      className={`${
-                        getStatusStyle(selectedTeam.status).text
-                      } font-bold capitalize text-xs`}
-                    >
+                    <p className={`${getStatusStyle(selectedTeam.status).text} font-bold capitalize text-xs`}>
                       {selectedTeam.status.replace("-", " ")}
                     </p>
                   </div>
                 </div>
-
-                {selectedTeam.mission && (
-                  <div className="mt-4 pt-4 border-t border-gray-700">
-                    <p className="text-orange-400 text-sm flex items-center gap-2">
-                      <Circle size={8} className="fill-current" />
-                      Currently on: {selectedTeam.mission}
-                    </p>
-                  </div>
-                )}
               </div>
-
-              {/* Action Buttons */}
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowModal(false)}
@@ -536,4 +491,3 @@ export default function TeamCoordination() {
     </div>
   );
 }
-

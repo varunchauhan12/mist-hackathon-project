@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -16,6 +17,8 @@ import {
 } from "lucide-react";
 
 import Sidebar from "@/components/Sidebar";
+import apiClient from "@/lib/api/client";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -30,42 +33,37 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup } from "@radix-ui/react-toggle-group";
 import { ToggleGroupItem } from "@/components/ui/toggle-group";
 import Link from "next/link";
-import apiClient from "@/lib/api/client";
 
-/* ---------- Types (UI) ---------- */
+/* ---------- TYPES (UI ONLY) ---------- */
 type EmergencyType = "flood" | "fire" | "trapped" | "medical" | "other";
-type UrgencyLevel = "critical" | "high" | "medium";
+type Severity = "critical" | "high" | "medium";
 
 interface ReportFormData {
   emergencyType: EmergencyType | null;
   description: string;
   location: { lat: number; lng: number } | null;
   peopleCount: number; // UI only
-  urgency: UrgencyLevel;
+  severity: Severity;
   photos: File[]; // UI only
 }
 
-/* ---------- Emergency Types ---------- */
 const emergencyTypes = [
   { id: "flood", label: "Flood", icon: Droplets, color: "text-blue-400" },
   { id: "fire", label: "Fire", icon: Flame, color: "text-orange-400" },
-  {
-    id: "trapped",
-    label: "Trapped",
-    icon: PersonStanding,
-    color: "text-yellow-400",
-  },
+  { id: "trapped", label: "Trapped", icon: PersonStanding, color: "text-yellow-400" },
   { id: "medical", label: "Medical", icon: Stethoscope, color: "text-red-400" },
   { id: "other", label: "Other", icon: AlertTriangle, color: "text-gray-300" },
 ];
 
-const VictimReportPage = () => {
+export default function VictimReportPage() {
+  const router = useRouter();
+
   const [formData, setFormData] = useState<ReportFormData>({
     emergencyType: null,
     description: "",
     location: null,
     peopleCount: 1,
-    urgency: "high",
+    severity: "high",
     photos: [],
   });
 
@@ -74,8 +72,11 @@ const VictimReportPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /* ---------- LOCATION ---------- */
   const detectLocation = () => {
     setIsLocating(true);
+    setError(null);
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setFormData((prev) => ({
@@ -87,11 +88,15 @@ const VictimReportPage = () => {
         }));
         setIsLocating(false);
       },
-      () => setIsLocating(false)
+      () => {
+        setError("Failed to get location. Please enable location services.");
+        setIsLocating(false);
+      },
+      { timeout: 8000 }
     );
   };
 
-  /* ---------- SUBMIT (SYNCED WITH BACKEND) ---------- */
+  /* ---------- SUBMIT (BACKEND SYNCED) ---------- */
   const handleSubmit = async () => {
     setError(null);
 
@@ -103,24 +108,19 @@ const VictimReportPage = () => {
     try {
       setIsSubmitting(true);
 
-      // ✅ BACKEND-ALIGNED PAYLOAD ONLY
       const payload = {
         type: formData.emergencyType,
-        severity: formData.urgency,
-        location: {
-          lat: formData.location.lat,
-          lng: formData.location.lng,
-        },
+        severity: formData.severity,
+        location: formData.location,
         description: formData.description || undefined,
-        media: [], // handled later if uploads added
+        media: [],
       };
 
       await apiClient.post("/emergencies", payload);
 
-      alert("Emergency report submitted successfully!");
-      setStep(1);
-    } catch {
-      setError("Failed to submit report. Please try again.");
+      router.push("/victim/status");
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to submit report");
     } finally {
       setIsSubmitting(false);
     }
@@ -131,7 +131,6 @@ const VictimReportPage = () => {
       <Sidebar role="victim" />
 
       <main className="flex-1 p-6 md:p-10 max-w-5xl mx-auto">
-        {/* Header */}
         <div className="mb-10 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold text-red-400 flex items-center justify-center gap-3">
             <AlertTriangle className="w-8 h-8" />
@@ -142,55 +141,55 @@ const VictimReportPage = () => {
 
         <Progress value={(step / 3) * 100} className="mb-10 h-3 bg-white/20" />
 
-        {/* STEP 1 */}
+        {/* ---------------- STEP 1 ---------------- */}
         {step === 1 && (
-          <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
+          <Card className="bg-white/10 border border-white/20 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-2xl text-white">
                 Select Emergency Type
               </CardTitle>
             </CardHeader>
 
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {emergencyTypes.map((type) => {
-                  const Icon = type.icon;
-                  const active = formData.emergencyType === type.id;
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {emergencyTypes.map((type) => {
+                const Icon = type.icon;
+                const active = formData.emergencyType === type.id;
 
-                  return (
-                    <button
-                      key={type.id}
-                      onClick={() =>
-                        setFormData((p) => ({
-                          ...p,
-                          emergencyType: type.id as EmergencyType,
-                        }))
-                      }
-                      className={`p-6 rounded-2xl border transition-all ${
-                        active
-                          ? "border-red-500 bg-red-500/20 scale-105"
-                          : "border-white/20 bg-white/5 hover:bg-white/10"
-                      }`}
-                    >
-                      <Icon className={`w-10 h-10 mx-auto ${type.color}`} />
-                      <p className="mt-3 text-lg font-semibold text-white">
-                        {type.label}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
+                return (
+                  <button
+                    key={type.id}
+                    onClick={() =>
+                      setFormData((p) => ({
+                        ...p,
+                        emergencyType: type.id as EmergencyType,
+                      }))
+                    }
+                    className={`p-6 rounded-2xl border transition-all ${
+                      active
+                        ? "border-red-500 bg-red-500/20 scale-105"
+                        : "border-white/20 bg-white/5 hover:bg-white/10"
+                    }`}
+                  >
+                    <Icon className={`w-10 h-10 mx-auto ${type.color}`} />
+                    <p className="mt-3 text-lg font-semibold text-white">
+                      {type.label}
+                    </p>
+                  </button>
+                );
+              })}
             </CardContent>
 
             <CardFooter className="flex justify-between">
               <Link href="/victim/dashboard">
-                <Button className="text-gray-300" variant="ghost">
+                <Button variant="ghost" className="text-gray-300">
                   <ArrowLeft /> Back
                 </Button>
               </Link>
+
               <Button
-                className="bg-red-500 hover:bg-red-600 text-white px-8 text-lg"
+                disabled={!formData.emergencyType}
                 onClick={() => setStep(2)}
+                className="bg-red-500 hover:bg-red-600 text-white px-8 text-lg"
               >
                 Next <ArrowRight />
               </Button>
@@ -198,14 +197,15 @@ const VictimReportPage = () => {
           </Card>
         )}
 
-        {/* STEP 2 */}
+        {/* ---------------- STEP 2 ---------------- */}
         {step === 2 && (
           <div className="space-y-8">
-            <Button variant="ghost" className="text-gray-300" onClick={() => setStep(1)}>
+            <Button variant="ghost" onClick={() => setStep(1)}>
               <ArrowLeft /> Back
             </Button>
 
-            <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
+            {/* Location */}
+            <Card className="bg-white/10 border border-white/20 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-xl text-white flex items-center gap-2">
                   <MapPin /> Location
@@ -214,8 +214,8 @@ const VictimReportPage = () => {
               <CardContent>
                 {formData.location ? (
                   <Alert className="bg-green-500/20 border-green-400">
-                    <AlertDescription className="text-green-200 text-lg">
-                      Latitude: {formData.location.lat.toFixed(4)} | Longitude:{" "}
+                    <AlertDescription className="text-green-200">
+                      {formData.location.lat.toFixed(4)},{" "}
                       {formData.location.lng.toFixed(4)}
                     </AlertDescription>
                   </Alert>
@@ -223,15 +223,16 @@ const VictimReportPage = () => {
                   <Button
                     onClick={detectLocation}
                     disabled={isLocating}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-6"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 py-6"
                   >
-                    {isLocating ? "Detecting Location..." : "Detect My Location"}
+                    {isLocating ? "Detecting..." : "Detect My Location"}
                   </Button>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
+            {/* Description */}
+            <Card className="bg-white/10 border border-white/20 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-xl text-white">
                   Situation Description
@@ -240,58 +241,20 @@ const VictimReportPage = () => {
               <CardContent>
                 <Textarea
                   rows={5}
-                  className="text-white text-lg placeholder:text-gray-400"
                   value={formData.description}
                   onChange={(e) =>
                     setFormData((p) => ({ ...p, description: e.target.value }))
                   }
+                  className="text-white"
                 />
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
-              <CardHeader>
-                <CardTitle className="text-xl text-white">
-                  People Needing Help
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center gap-10">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setFormData((p) => ({
-                      ...p,
-                      peopleCount: Math.max(1, p.peopleCount - 1),
-                    }))
-                  }
-                >
-                  <Minus />
-                </Button>
-
-                <span className="text-5xl font-bold text-white">
-                  {formData.peopleCount}
-                </span>
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setFormData((p) => ({
-                      ...p,
-                      peopleCount: p.peopleCount + 1,
-                    }))
-                  }
-                >
-                  <Plus />
-                </Button>
               </CardContent>
             </Card>
 
             <div className="flex justify-end">
               <Button
-                className="bg-red-500 hover:bg-red-600 text-white px-8 text-lg"
+                disabled={!formData.location}
                 onClick={() => setStep(3)}
+                className="bg-red-500 hover:bg-red-600 px-8 text-lg"
               >
                 Next <ArrowRight />
               </Button>
@@ -299,28 +262,15 @@ const VictimReportPage = () => {
           </div>
         )}
 
-        {/* STEP 3 */}
+        {/* ---------------- STEP 3 ---------------- */}
         {step === 3 && (
           <div className="space-y-8">
-            <Button variant="ghost" className="text-gray-300" onClick={() => setStep(2)}>
+            <Button variant="ghost" onClick={() => setStep(2)}>
               <ArrowLeft /> Back
             </Button>
 
-            <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
-              <CardHeader>
-                <CardTitle className="text-xl text-white flex items-center gap-2">
-                  <Camera /> Upload Photo (Optional)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <label className="h-36 flex flex-col items-center justify-center border-2 border-dashed border-white/30 rounded-xl cursor-pointer hover:bg-white/10">
-                  <Camera className="w-10 h-10 text-gray-300" />
-                  <input type="file" className="hidden" />
-                </label>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
+            {/* Urgency */}
+            <Card className="bg-white/10 border border-white/20 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-xl text-white">
                   Urgency Level
@@ -329,9 +279,13 @@ const VictimReportPage = () => {
               <CardContent>
                 <ToggleGroup
                   type="single"
-                  value={formData.urgency}
+                  value={formData.severity}
                   onValueChange={(v) =>
-                    v && setFormData((p) => ({ ...p, urgency: v as UrgencyLevel }))
+                    v &&
+                    setFormData((p) => ({
+                      ...p,
+                      severity: v as Severity,
+                    }))
                   }
                   className="grid grid-cols-3 gap-4"
                 >
@@ -344,7 +298,7 @@ const VictimReportPage = () => {
 
             {error && (
               <Alert className="bg-red-500/20 border-red-400">
-                <AlertDescription className="text-red-200 text-lg">
+                <AlertDescription className="text-red-200">
                   {error}
                 </AlertDescription>
               </Alert>
@@ -354,7 +308,7 @@ const VictimReportPage = () => {
               <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="bg-green-600 hover:bg-green-700 text-white px-10 text-lg"
+                className="bg-green-600 hover:bg-green-700 px-10 text-lg"
               >
                 {isSubmitting ? "Submitting..." : "Submit Emergency Report"}
               </Button>
@@ -364,6 +318,4 @@ const VictimReportPage = () => {
       </main>
     </div>
   );
-};
-
-export default VictimReportPage;
+}

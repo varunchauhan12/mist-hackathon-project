@@ -10,7 +10,7 @@ export const initSocket = (httpServer) => {
       credentials: true,
       methods: ["GET", "POST"],
     },
-    transports: ["polling", "websocket"], // ✅ IMPORTANT
+    transports: ["polling", "websocket"], 
   });
 
   io.use((socket, next) => {
@@ -43,14 +43,17 @@ export const initSocket = (httpServer) => {
     addUser(socket.userId, socket.id);
     socket.join(socket.role);
     
-    import("../socket/locationHandler").then(({ default: locationHandler }) => {
+    import("../socket/locationHandler.js").then(({ default: locationHandler }) => {
       locationHandler(io, socket);
     });
     
-    import("../socket/rescueChatHandler").then(({ default: rescueChatHandler }) => {
+    import("../socket/rescueChatHandler.js").then(({ default: rescueChatHandler }) => {
       rescueChatHandler(io, socket);
     });
 
+    import("../socket/routeHandler.js").then(({ default: routeHandler }) => {
+      routeHandler(io, socket);
+    });
 
     socket.on("disconnect", () => {
       removeUser(socket.userId);
