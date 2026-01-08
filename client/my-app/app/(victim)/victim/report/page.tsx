@@ -30,8 +30,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup } from "@radix-ui/react-toggle-group";
 import { ToggleGroupItem } from "@/components/ui/toggle-group";
 import Link from "next/link";
+import apiClient from "@/lib/api/client";
 
-/* ---------- Types ---------- */
+/* ---------- Types (UI) ---------- */
 type EmergencyType = "flood" | "fire" | "trapped" | "medical" | "other";
 type UrgencyLevel = "critical" | "high" | "medium";
 
@@ -39,9 +40,9 @@ interface ReportFormData {
   emergencyType: EmergencyType | null;
   description: string;
   location: { lat: number; lng: number } | null;
-  peopleCount: number;
+  peopleCount: number; // UI only
   urgency: UrgencyLevel;
-  photos: File[];
+  photos: File[]; // UI only
 }
 
 /* ---------- Emergency Types ---------- */
@@ -76,12 +77,12 @@ const VictimReportPage = () => {
   const detectLocation = () => {
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      (pos) => {
         setFormData((prev) => ({
           ...prev,
           location: {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
           },
         }));
         setIsLocating(false);
@@ -90,7 +91,7 @@ const VictimReportPage = () => {
     );
   };
 
-  /* ---------- SUBMIT HANDLER ---------- */
+  /* ---------- SUBMIT (SYNCED WITH BACKEND) ---------- */
   const handleSubmit = async () => {
     setError(null);
 
@@ -102,21 +103,23 @@ const VictimReportPage = () => {
     try {
       setIsSubmitting(true);
 
+      // ✅ BACKEND-ALIGNED PAYLOAD ONLY
       const payload = {
-        ...formData,
-        photos: undefined, // handle uploads separately if needed
+        type: formData.emergencyType,
+        severity: formData.urgency,
+        location: {
+          lat: formData.location.lat,
+          lng: formData.location.lng,
+        },
+        description: formData.description || undefined,
+        media: [], // handled later if uploads added
       };
 
-      // Example API call
-      await fetch("/api/emergency-report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      await apiClient.post("/emergencies", payload);
 
       alert("Emergency report submitted successfully!");
       setStep(1);
-    } catch (err) {
+    } catch {
       setError("Failed to submit report. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -139,7 +142,7 @@ const VictimReportPage = () => {
 
         <Progress value={(step / 3) * 100} className="mb-10 h-3 bg-white/20" />
 
-        {/* ---------------- STEP 1 ---------------- */}
+        {/* STEP 1 */}
         {step === 1 && (
           <Card className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl">
             <CardHeader>
@@ -163,12 +166,11 @@ const VictimReportPage = () => {
                           emergencyType: type.id as EmergencyType,
                         }))
                       }
-                      className={`p-6 rounded-2xl border transition-all
-                        ${
-                          active
-                            ? "border-red-500 bg-red-500/20 scale-105"
-                            : "border-white/20 bg-white/5 hover:bg-white/10"
-                        }`}
+                      className={`p-6 rounded-2xl border transition-all ${
+                        active
+                          ? "border-red-500 bg-red-500/20 scale-105"
+                          : "border-white/20 bg-white/5 hover:bg-white/10"
+                      }`}
                     >
                       <Icon className={`w-10 h-10 mx-auto ${type.color}`} />
                       <p className="mt-3 text-lg font-semibold text-white">
@@ -196,14 +198,10 @@ const VictimReportPage = () => {
           </Card>
         )}
 
-        {/* ---------------- STEP 2 ---------------- */}
+        {/* STEP 2 */}
         {step === 2 && (
           <div className="space-y-8">
-            <Button
-              variant="ghost"
-              className="text-gray-300"
-              onClick={() => setStep(1)}
-            >
+            <Button variant="ghost" className="text-gray-300" onClick={() => setStep(1)}>
               <ArrowLeft /> Back
             </Button>
 
@@ -227,9 +225,7 @@ const VictimReportPage = () => {
                     disabled={isLocating}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-6"
                   >
-                    {isLocating
-                      ? "Detecting Location..."
-                      : "Detect My Location"}
+                    {isLocating ? "Detecting Location..." : "Detect My Location"}
                   </Button>
                 )}
               </CardContent>
@@ -264,9 +260,9 @@ const VictimReportPage = () => {
                   variant="outline"
                   size="icon"
                   onClick={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      peopleCount: Math.max(1, prev.peopleCount - 1),
+                    setFormData((p) => ({
+                      ...p,
+                      peopleCount: Math.max(1, p.peopleCount - 1),
                     }))
                   }
                 >
@@ -281,9 +277,9 @@ const VictimReportPage = () => {
                   variant="outline"
                   size="icon"
                   onClick={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      peopleCount: prev.peopleCount + 1,
+                    setFormData((p) => ({
+                      ...p,
+                      peopleCount: p.peopleCount + 1,
                     }))
                   }
                 >
@@ -303,14 +299,10 @@ const VictimReportPage = () => {
           </div>
         )}
 
-        {/* ---------------- STEP 3 ---------------- */}
+        {/* STEP 3 */}
         {step === 3 && (
           <div className="space-y-8">
-            <Button
-              variant="ghost"
-              className="text-gray-300"
-              onClick={() => setStep(2)}
-            >
+            <Button variant="ghost" className="text-gray-300" onClick={() => setStep(2)}>
               <ArrowLeft /> Back
             </Button>
 
@@ -338,13 +330,9 @@ const VictimReportPage = () => {
                 <ToggleGroup
                   type="single"
                   value={formData.urgency}
-                  onValueChange={(value) => {
-                    if (!value) return;
-                    setFormData((prev) => ({
-                      ...prev,
-                      urgency: value as UrgencyLevel,
-                    }));
-                  }}
+                  onValueChange={(v) =>
+                    v && setFormData((p) => ({ ...p, urgency: v as UrgencyLevel }))
+                  }
                   className="grid grid-cols-3 gap-4"
                 >
                   <ToggleGroupItem value="critical">Critical</ToggleGroupItem>

@@ -51,7 +51,7 @@ export const useSafeZones = () => {
       setSafeZones((prev) => prev.map((z) => (z._id === id ? updated : z)));
       return updated;
     } catch (err: any) {
-            setError(err.message || "Failed to update safe zone");
+      setError(err.message || "Failed to update safe zone");
       throw err;
     } finally {
       setLoading(false);

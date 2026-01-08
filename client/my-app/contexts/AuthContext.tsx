@@ -28,23 +28,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Fetch user on mount
+  // 🔐 Restore session on mount
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await authApi.me();
-        setUser(response.user);
+        const res = await authApi.me();
+        setUser(res.user);
 
-        // Connect socket after auth
-        if (response.user) {
-          // Get access token from cookie (you might need to implement this)
-          const accessToken = getAccessTokenFromCookie();
-          if (accessToken) {
-            socket.connect(accessToken);
-          }
-        }
-      } catch (error) {
+        // ✅ Connect socket AFTER auth is confirmed
+        socket.connect();
+      } catch {
         setUser(null);
+        socket.disconnect();
       } finally {
         setLoading(false);
       }
@@ -55,59 +50,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Login
   const login = async (credentials: LoginCredentials) => {
-    try {
-      const response = await authApi.login(credentials);
-      setUser(response.user);
+    const res = await authApi.login(credentials);
+    setUser(res.user);
 
-      // Connect socket
-      const accessToken = getAccessTokenFromCookie();
-      if (accessToken) {
-        socket.connect(accessToken);
-      }
+    // ✅ Cookies are already set by backend
+    socket.connect();
 
-      // Redirect based on role
-      switch (response.user.role) {
-        case "victim":
-          router.push("/victim/dashboard");
-          break;
-        case "rescue":
-          router.push("/rescue/dashboard");
-          break;
-        case "logistics":
-          router.push("/logistics/dashboard");
-          break;
-      }
-    } catch (error: any) {
-      throw new Error(error.message || "Login failed");
+    switch (res.user.role) {
+      case "victim":
+        router.replace("/victim/dashboard");
+        break;
+      case "rescue":
+        router.replace("/rescue/dashboard");
+        break;
+      case "logistics":
+        router.replace("/logistics/dashboard");
+        break;
     }
   };
 
   // Signup
   const signup = async (data: SignupData) => {
-    try {
-      const response = await authApi.signup(data);
-      setUser(response.user);
+    const res = await authApi.signup(data);
+    setUser(res.user);
 
-      // Connect socket
-      const accessToken = getAccessTokenFromCookie();
-      if (accessToken) {
-        socket.connect(accessToken);
-      }
+    socket.connect();
 
-      // Redirect based on role
-      switch (response.user.role) {
-        case "victim":
-          router.push("/victim/dashboard");
-          break;
-        case "rescue":
-          router.push("/rescue/dashboard");
-          break;
-        case "logistics":
-          router.push("/logistics/dashboard");
-          break;
-      }
-    } catch (error: any) {
-      throw new Error(error.message || "Signup failed");
+    switch (res.user.role) {
+      case "victim":
+        router.replace("/victim/dashboard");
+        break;
+      case "rescue":
+        router.replace("/rescue/dashboard");
+        break;
+      case "logistics":
+        router.replace("/logistics/dashboard");
+        break;
     }
   };
 
@@ -115,21 +93,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       await authApi.logout();
+    } finally {
       setUser(null);
       socket.disconnect();
-      router.push("/");
-    } catch (error) {
-      console.error("Logout error:", error);
+      router.replace("/auth/login");
     }
   };
 
-  // Refresh user data
+  // Silent refresh
   const refreshUser = async () => {
     try {
-      const response = await authApi.me();
-      setUser(response.user);
-    } catch (error) {
+      const res = await authApi.me();
+      setUser(res.user);
+    } catch {
       setUser(null);
+      socket.disconnect();
     }
   };
 
@@ -150,17 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
     throw new Error("useAuth must be used within AuthProvider");
   }
-  return context;
+  return ctx;
 };
-
-// Helper to get access token from cookie
-function getAccessTokenFromCookie(): string | null {
-  if (typeof document === "undefined") return null;
-  const cookies = document.cookie.split("; ");
-  const tokenCookie = cookies.find((c) => c.startsWith("accessToken="));
-  return tokenCookie ? tokenCookie.split("=")[1] : null;
-}

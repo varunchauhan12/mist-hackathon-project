@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const connectToDB=async ()=>{
-    await mongoose.connect(process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/commandr');
+    await mongoose.connect('mongodb+srv://guptakaranport:karang2006@cluster0.gapyepy.mongodb.net/');
 }
 
 connectToDB()
