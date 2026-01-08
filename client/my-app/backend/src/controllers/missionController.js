@@ -5,7 +5,7 @@ import {
 } from "../service/missionServices.js";
 
 export const makeMission = async (req, res) => {
-  const mission = await createMission(req.body , req.app.get("io"));
+  const mission = await createMission(req.body, req.app.get("io"));
   res.status(201).json({ mission });
 };
 
@@ -19,9 +19,13 @@ export const fetchRescueMissions = async (req, res) => {
 };
 
 export const changeMissionStatus = async (req, res) => {
-  const { missionId } = req.params;
+  const { id } = req.params; // ✅ FIX
   const { status } = req.body;
 
-  const mission = await updateMissionStatus(missionId, status,req.app.get("io"));
-  res.status(200).json({ success: true, mission });
+  const mission = await updateMissionStatus(id, status, req.app.get("io"));
+
+  res.status(200).json({
+    success: true,
+    data: mission,
+  });
 };

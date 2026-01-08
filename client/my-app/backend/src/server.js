@@ -15,6 +15,7 @@ import vehicleRoutes from "./routes/vehicleRoutes.js";
 import safeZoneRoutes from "./routes/safeZoneRoutes.js";
 import subsRoutes from "./routes/subsRouter.js";
 import routesRoutes from "./routes/routesRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/safezones", safeZoneRoutes);
 app.use("/api/subscriptions", subsRoutes);
 app.use("/api/routes", routesRoutes);
+app.use("/api/users", userRoutes);
 
 app.use((err, req, res, next) => {
   const status = typeof err.status === "number" ? err.status : 500;

@@ -1,6 +1,7 @@
-import User from "../models/User";
+import User from "../models/User.js"; // ✅ import
 
-module.exports = (io, socket) => {
+export default (io, socket) => {
+  // ✅ export default
   socket.on("locationUpdate", async ({ lat, lng, role }) => {
     if (lat == null || lng == null) return;
 
@@ -14,7 +15,6 @@ module.exports = (io, socket) => {
         lat,
         lng,
       });
-
       io.to("logistics").emit("victimLocation", {
         userId: socket.userId,
         lat,
@@ -23,6 +23,12 @@ module.exports = (io, socket) => {
     }
 
     if (role === "rescue") {
+      // ✅ ALSO emit to other rescues for nearby teams
+      io.to("rescue").emit("rescueLocation", {
+        userId: socket.userId,
+        lat,
+        lng,
+      });
       io.to("logistics").emit("rescueLocation", {
         userId: socket.userId,
         lat,

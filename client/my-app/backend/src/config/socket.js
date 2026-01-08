@@ -42,6 +42,15 @@ export const initSocket = (httpServer) => {
 
     addUser(socket.userId, socket.id);
     socket.join(socket.role);
+    
+    import("../socket/locationHandler").then(({ default: locationHandler }) => {
+      locationHandler(io, socket);
+    });
+    
+    import("../socket/rescueChatHandler").then(({ default: rescueChatHandler }) => {
+      rescueChatHandler(io, socket);
+    });
+
 
     socket.on("disconnect", () => {
       removeUser(socket.userId);
