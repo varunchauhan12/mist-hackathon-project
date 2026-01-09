@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import authApi from "@/lib/api/authApi";
+import { socket } from "@/lib/socket";
 import { User, LoginCredentials, SignupData } from "@/types";
 
 interface AuthContextType {
@@ -20,32 +27,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Restore session
+  /* ================= RESTORE SESSION ================= */
   useEffect(() => {
     authApi
       .me()
-      .then((res) => setUser(res.user))
-      .catch(() => setUser(null))
+      .then((res) => {
+        setUser(res.user);
+        socket.connect(); // ✅ CONNECT SOCKET AFTER AUTH RESTORE
+      })
+      .catch(() => {
+        setUser(null);
+        socket.disconnect(); // safety
+      })
       .finally(() => setLoading(false));
   }, []);
 
+  /* ================= LOGIN ================= */
   const login = async (credentials: LoginCredentials) => {
     const res = await authApi.login(credentials);
     setUser(res.user);
 
+    socket.connect(); // ✅ CONNECT SOCKET ON LOGIN
     router.replace(`/${res.user.role}/dashboard`);
   };
 
+  /* ================= SIGNUP ================= */
   const signup = async (data: SignupData) => {
     const res = await authApi.signup(data);
     setUser(res.user);
 
+    socket.connect(); // ✅ CONNECT SOCKET ON SIGNUP
     router.replace(`/${res.user.role}/dashboard`);
   };
 
+  /* ================= LOGOUT ================= */
   const logout = async () => {
     await authApi.logout();
     setUser(null);
+
+    socket.disconnect(); // ✅ DISCONNECT SOCKET ONLY HERE
     router.replace("/auth/login");
   };
 

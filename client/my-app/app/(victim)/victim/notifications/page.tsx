@@ -49,10 +49,12 @@ function formatRelativeTime(date: string) {
 export default function NotificationsPage() {
   const { notifications: socketNotifications } = useSocket();
 
+  console.log("🟡 socketNotifications:", socketNotifications);
+
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [filter, setFilter] = useState<
-    "all" | "unread" | NotificationType
-  >("all");
+  const [filter, setFilter] = useState<"all" | "unread" | NotificationType>(
+    "all",
+  );
 
   /* ---------- SYNC SOCKET → UI ---------- */
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function NotificationsPage() {
   /* ---------- ACTIONS ---------- */
   const markAsRead = (id: string) =>
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
 
   const markAllAsRead = () =>
@@ -141,21 +143,19 @@ export default function NotificationsPage() {
 
         {/* Filters */}
         <div className="flex gap-2 mb-6 flex-wrap">
-          {["all", "unread", "alert", "warning", "success", "info"].map(
-            (f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f as any)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-                  filter === f
-                    ? "bg-blue-500 text-white"
-                    : "bg-white/5 text-gray-400"
-                }`}
-              >
-                {f.toUpperCase()}
-              </button>
-            )
-          )}
+          {["all", "unread", "alert", "warning", "success", "info"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f as any)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+                filter === f
+                  ? "bg-blue-500 text-white"
+                  : "bg-white/5 text-gray-400"
+              }`}
+            >
+              {f.toUpperCase()}
+            </button>
+          ))}
 
           {unreadCount > 0 && (
             <button

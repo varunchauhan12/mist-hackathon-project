@@ -28,6 +28,8 @@ export const resolveRecipients = async (eventType, payload) => {
           recipients.push(user);
         }
       }
+      const victim = await User.findById(payload.reportedBy || payload.userId);
+      if (victim) recipients.push(victim);
       break;
     }
 

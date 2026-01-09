@@ -8,168 +8,137 @@ import {
   ReactNode,
 } from "react";
 import { socket } from "@/lib/socket";
-import { useAuth } from "@/app/providers/AuthProvider"; // ✅ FIXED: Correct import path
-import { SocketNotification, RescueMessage, Location } from "@/types";
+import { useAuth } from "@/app/providers/AuthProvider";
+import { Location, RescueMessage, SocketNotification } from "@/types";
 
 interface SocketContextType {
   connected: boolean;
+
   notifications: SocketNotification[];
+  clearNotifications: () => void;
+
   victimLocations: Map<string, Location>;
   rescueLocations: Map<string, Location>;
+
   rescueMessages: RescueMessage[];
-  currentRoute: any;
   sendRescueMessage: (message: string) => void;
   joinRescueChat: (lat: number, lng: number) => void;
-  clearNotifications: () => void;
-  markNotificationAsRead: (index: number) => void;
+
+  route: any;
 }
 
 const SocketContext = createContext<SocketContextType | null>(null);
 
 export function SocketProvider({ children }: { children: ReactNode }) {
-  // ✅ FIXED: Safe useAuth with loading check
   const { user, loading } = useAuth();
+
   const [connected, setConnected] = useState(false);
   const [notifications, setNotifications] = useState<SocketNotification[]>([]);
-  const [victimLocations, setVictimLocations] = useState<Map<string, Location>>(new Map());
-  const [rescueLocations, setRescueLocations] = useState<Map<string, Location>>(new Map());
+  const [victimLocations, setVictimLocations] = useState<Map<string, Location>>(
+    new Map(),
+  );
+  const [rescueLocations, setRescueLocations] = useState<Map<string, Location>>(
+    new Map(),
+  );
   const [rescueMessages, setRescueMessages] = useState<RescueMessage[]>([]);
-  const [currentRoute, setCurrentRoute] = useState<any>(null);
+  const [route, setRoute] = useState<any>(null);
 
-  // ✅ FIXED: Skip effects until auth loads
+  /* ================= SOCKET LISTENERS ================= */
+
   useEffect(() => {
-    if (loading || !user) {
-      setConnected(false);
-      return;
-    }
+    if (loading || !user) return;
 
-    const socketInstance = socket; // ✅ Direct socket instance
+    const onConnect = () => setConnected(true);
+    const onDisconnect = () => setConnected(false);
 
-    // Connection events
-    socketInstance.on("connect", () => {
-      console.log("✅ Socket connected");
-      setConnected(true);
-    });
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
 
-    socketInstance.on("disconnect", () => {
-      console.log("❌ Socket disconnected");
-      setConnected(false);
-    });
-
-    // Notification events
-    socketInstance.on("notification:new", (data: SocketNotification) => {
-      console.log("🔔 New notification:", data);
+    socket.on("notification:new", (data: SocketNotification) => {
+      console.log("🔔 notification received:", data);
       setNotifications((prev) => [data, ...prev]);
-
-      // Browser notifications
-      if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(data.payload?.title || "New Notification", {
-          body: data.payload?.message || "You have a new update",
-          icon: "/logo.png",
-          badge: "/logo.png",
-          tag: data.eventType,
-        });
-      }
     });
 
-    // Victim locations (rescue/logistics)
     if (user.role === "rescue" || user.role === "logistics") {
-      socketInstance.on("victimLocation", (data: { userId: string; lat: number; lng: number }) => {
-        console.log("📍 Victim location:", data);
+      socket.on("victimLocation", ({ userId, lat, lng }) => {
         setVictimLocations((prev) => {
-          const updated = new Map(prev);
-          updated.set(data.userId, { lat: data.lat, lng: data.lng });
-          return updated;
+          const map = new Map(prev);
+          map.set(userId, { lat, lng });
+          return map;
         });
       });
     }
 
-    // Rescue locations (logistics only)
     if (user.role === "logistics") {
-      socketInstance.on("rescueLocation", (data: { userId: string; lat: number; lng: number }) => {
-        console.log("🚑 Rescue location:", data);
+      socket.on("rescueLocation", ({ userId, lat, lng }) => {
         setRescueLocations((prev) => {
-          const updated = new Map(prev);
-          updated.set(data.userId, { lat: data.lat, lng: data.lng });
-          return updated;
+          const map = new Map(prev);
+          map.set(userId, { lat, lng });
+          return map;
         });
       });
     }
 
-    // Rescue chat (rescue teams only)
     if (user.role === "rescue") {
-      socketInstance.on("rescue:new-message", (msg: RescueMessage) => {
-        console.log("💬 Rescue message:", msg);
+      socket.on("rescue:new-message", (msg: RescueMessage) => {
         setRescueMessages((prev) => [...prev, msg]);
       });
 
-      socketInstance.on("rescue:joined-room", (data: { roomId: string }) => {
-        console.log("✅ Joined rescue room:", data.roomId);
+      socket.on("rescue:joined-room", () => {
+        setRescueMessages([]);
       });
     }
 
-    // Route updates
-    socketInstance.on("route:update", (route: any) => {
-      console.log("🗺️ Route update:", route);
-      setCurrentRoute(route);
+    socket.on("route:update", (newRoute: any) => {
+      setRoute(newRoute);
     });
 
-    // Connect socket
-    socketInstance.connect();
-
     return () => {
-      socketInstance.off("connect");
-      socketInstance.off("disconnect");
-      socketInstance.off("notification:new");
-      socketInstance.off("victimLocation");
-      socketInstance.off("rescueLocation");
-      socketInstance.off("rescue:new-message");
-      socketInstance.off("rescue:joined-room");
-      socketInstance.off("route:update");
-      socketInstance.disconnect();
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("notification:new");
+      socket.off("victimLocation");
+      socket.off("rescueLocation");
+      socket.off("rescue:new-message");
+      socket.off("rescue:joined-room");
+      socket.off("route:update");
     };
   }, [user, loading]);
 
+  /* ================= ACTIONS ================= */
+
   const sendRescueMessage = (message: string) => {
-    if (!message.trim() || !user) return;
+    if (!message.trim()) return;
     socket.emit("rescue:send-message", { message });
   };
 
   const joinRescueChat = (lat: number, lng: number) => {
-    if (!user) return;
     socket.emit("rescue:join-nearby", { lat, lng });
   };
 
   const clearNotifications = () => setNotifications([]);
-  const markNotificationAsRead = (index: number) => {
-    setNotifications((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // ✅ FIXED: Safe context value
-  const value: SocketContextType = {
-    connected,
-    notifications,
-    victimLocations,
-    rescueLocations,
-    rescueMessages,
-    currentRoute,
-    sendRescueMessage,
-    joinRescueChat,
-    clearNotifications,
-    markNotificationAsRead,
-  };
 
   return (
-    <SocketContext.Provider value={value}>
+    <SocketContext.Provider
+      value={{
+        connected,
+        notifications,
+        clearNotifications,
+        victimLocations,
+        rescueLocations,
+        rescueMessages,
+        sendRescueMessage,
+        joinRescueChat,
+        route,
+      }}
+    >
       {children}
     </SocketContext.Provider>
   );
 }
 
 export const useSocket = () => {
-  const context = useContext(SocketContext);
-  if (!context) {
-    throw new Error("useSocket must be used within SocketProvider");
-  }
-  return context;
+  const ctx = useContext(SocketContext);
+  if (!ctx) throw new Error("useSocket must be used inside SocketProvider");
+  return ctx;
 };

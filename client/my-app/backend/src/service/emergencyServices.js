@@ -22,6 +22,7 @@ export const createEmergency = async (userId, data, io) => {
       severity: emergency.severity,
       type: emergency.type,
       message: "New emergency reported",
+      reportedBy: userId,
     },
     context: { userId },
     io,
