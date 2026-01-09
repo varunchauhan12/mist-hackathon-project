@@ -6,5 +6,5 @@ export { useSafeZones } from "./useSafeZones";
 
 
 // Re-export auth and socket hooks from contexts
-export { useAuth } from "@/contexts/AuthContext";
+export { useAuth } from "@/app/providers/AuthProvider";
 export { useSocket } from "@/contexts/SocketContext";

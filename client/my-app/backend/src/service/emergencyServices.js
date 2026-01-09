@@ -14,6 +14,8 @@ export const createEmergency = async (userId, data, io) => {
     status: "pending",
   });
 
+  console.log("🔥 decisionEngine called for EMERGENCY_REPORTED");
+
   await decisionEngine({
     eventType: EVENTS.EMERGENCY_REPORTED,
     payload: {

@@ -11,8 +11,21 @@ export const dispatch = async ({
 }) => {
   const socketId = getSocketId(recipient._id);
 
+  console.log("📨 dispatch called", {
+    recipient: recipient._id.toString(),
+    eventType,
+    channels,
+    socketId,
+  });
+
   /* via socket */
   if (channels.socket && socketId) {
+    console.log(
+      "🔌 socketId for recipient:",
+      recipient._id.toString(),
+      getSocketId(recipient._id),
+    );
+
     io.to(socketId).emit("notification:new", {
       eventType,
       payload,

@@ -22,43 +22,42 @@ export const initSocket = (httpServer) => {
 
   io.use((socket, next) => {
     try {
-      const cookies = cookie.parse(socket.handshake.headers.cookie || "");
-      const accessToken = cookies.accessToken;
+      const cookieHeader = socket.handshake.headers.cookie;
 
-      if (!accessToken) {
-        return next(new Error("Auth error: token missing"));
+      if (!cookieHeader) {
+        // ❌ DO NOT BLOCK POLLING
+        return next();
       }
 
-      const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
+      const cookies = cookie.parse(cookieHeader);
+      const token = cookies.accessToken;
 
-      const userId = decoded.userId || decoded._id || decoded.id;
-      const role = decoded.role;
+      if (!token) return next();
 
-      if (!userId || !role) {
-        return next(new Error("Auth error: invalid token payload"));
-      }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      socket.userId = userId;
-      socket.role = role;
+      socket.userId = decoded.userId || decoded.id || decoded._id;
+      socket.role = decoded.role;
 
       next();
     } catch (err) {
-      console.error("❌ Socket auth failed:", err.message);
-      next(new Error("Authentication failed"));
+      console.error("Socket auth error:", err.message);
+      next(); // ❗ DO NOT BLOCK CONNECTION
     }
   });
 
   /* ================= CONNECTION ================= */
 
   io.on("connection", (socket) => {
-    console.log("✅ Socket connected:", socket.id);
+    console.log("🟢 Socket connected:", socket.id);
 
-    // registry
-    addUser(socket.userId, socket.id);
-
-    // REQUIRED rooms
-    socket.join(socket.userId.toString()); // direct / route updates
-    socket.join(socket.role);              // role broadcasts
+    if (socket.userId) {
+      addUser(socket.userId, socket.id);
+      socket.join(socket.userId.toString());
+      if (socket.role) socket.join(socket.role);
+    } else {
+      console.warn("⚠️ Unauthenticated socket:", socket.id);
+    } // role broadcasts
 
     // handlers
     locationHandler(io, socket);

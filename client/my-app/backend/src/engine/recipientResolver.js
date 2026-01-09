@@ -75,5 +75,13 @@ export const resolveRecipients = async (eventType, payload) => {
     }
   }
 
+  console.log(
+    "🎯 recipients:",
+    recipients.map((u) => ({
+      id: u._id.toString(),
+      role: u.role,
+    })),
+  );
+
   return recipients;
 };

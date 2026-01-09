@@ -7,6 +7,8 @@ export const addUser = (userId, socketId) => {
   }
 
   onlineUsers.set(String(userId), socketId);
+  console.log("🟢 addUser:", userId.toString(), socketId);
+
 };
 
 export const removeUser = (userId) => {
