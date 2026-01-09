@@ -1,49 +1,56 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import authApi from "@/app/(api)/authApi/page";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import authApi from "@/lib/api/authApi";
+import { User, LoginCredentials, SignupData } from "@/types";
 
-type User = {
-  id: string;
-  fullName: string;
-  email: string;
-  role: "victim" | "rescue" | "logistics";
-};
-
-type AuthContextType = {
+interface AuthContextType {
   user: User | null;
   loading: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  signup: (data: SignupData) => Promise<void>;
   logout: () => Promise<void>;
-};
+}
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
+  // Restore session
   useEffect(() => {
-    const fetchMe = async () => {
-      try {
-        const res = await authApi.get("/me");
-        setUser(res.data.user);
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMe();
+    authApi
+      .me()
+      .then((res) => setUser(res.user))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
+  const login = async (credentials: LoginCredentials) => {
+    const res = await authApi.login(credentials);
+    setUser(res.user);
+
+    router.replace(`/${res.user.role}/dashboard`);
+  };
+
+  const signup = async (data: SignupData) => {
+    const res = await authApi.signup(data);
+    setUser(res.user);
+
+    router.replace(`/${res.user.role}/dashboard`);
+  };
+
   const logout = async () => {
-    await authApi.post("/logout");
+    await authApi.logout();
     setUser(null);
+    router.replace("/auth/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

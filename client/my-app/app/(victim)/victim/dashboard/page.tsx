@@ -5,6 +5,7 @@ import { AlertCircle, MapPin, Users, Clock, Loader2 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
 import apiClient from "@/lib/api/client";
+import { useLiveLocation } from "@/hooks/useLiveLocation";
 
 import {
   BarChart,
@@ -40,6 +41,8 @@ export default function VictimDashboard() {
   const [emergencies, setEmergencies] = useState<Emergency[]>([]);
   const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useLiveLocation();
 
   /* ---------- FETCH ---------- */
   useEffect(() => {

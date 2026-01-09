@@ -1,15 +1,10 @@
-
 "use client";
 
 import { useEffect, useRef } from "react";
-import { socket } from "@/lib/socket";
+import { useSocket } from "@/contexts/SocketContext";
+import { useAuth } from "@/app/providers/AuthProvider";
 
-type Role = "victim" | "rescue" | "logistics" | null;
-
-type Location = {
-  lat: number;
-  lng: number;
-};
+type Location = { lat: number; lng: number };
 
 const getDistanceInMeters = (a: Location, b: Location) => {
   const R = 6371000;
@@ -28,35 +23,37 @@ const getDistanceInMeters = (a: Location, b: Location) => {
   return 2 * R * Math.asin(Math.sqrt(h));
 };
 
-export const useLiveLocation = (role: Role) => {
-  const watchIdRef = useRef<number | null>(null);
+export const useLiveLocation = () => {
+  const { connected } = useSocket();
+  const { user } = useAuth();
+
   const lastLocationRef = useRef<Location | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!role) return;
+    if (!connected || !user) return;
     if (!navigator.geolocation) return;
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const currentLocation: Location = {
+        const current = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         };
 
         if (lastLocationRef.current) {
-          const distance = getDistanceInMeters(
-            lastLocationRef.current,
-            currentLocation
-          );
-
-          if (distance < 20) return;
+          const dist = getDistanceInMeters(lastLocationRef.current, current);
+          if (dist < 20) return;
         }
 
-        lastLocationRef.current = currentLocation;
+        lastLocationRef.current = current;
 
-        socket.emit("locationUpdate", {
-          ...currentLocation,
-          role,
+        // ✅ only emit, no socket lifecycle here
+        import("@/lib/socket").then(({ socket }) => {
+          socket.emit("locationUpdate", {
+            ...current,
+            role: user.role,
+          });
         });
       },
       () => {},
@@ -72,5 +69,5 @@ export const useLiveLocation = (role: Role) => {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
     };
-  }, [role]);
+  }, [connected, user]);
 };

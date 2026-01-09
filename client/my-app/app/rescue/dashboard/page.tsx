@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import {
   Zap,
   TrendingUp,
@@ -73,10 +73,11 @@ const activeMissions = [
     eta: "4 min",
   },
 ];
+import {useLiveLocation} from "@/hooks/useLiveLocation";
 
 export default function RescueDashboard() {
   const [teamName] = useState("Alpha Team");
-
+  useLiveLocation();
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-[#020617] via-[#0c4a6e] to-[#0f172a]">
       {/* ---------- Sidebar ---------- */}

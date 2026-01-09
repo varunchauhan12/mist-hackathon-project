@@ -23,6 +23,7 @@ import {
   ZAxis,
   LineChart,
 } from "recharts";
+import { useLiveLocation } from "@/hooks/useLiveLocation";
 
 /* ---------- Mock Data ---------- */
 const vehicleUtilization = [
@@ -70,6 +71,7 @@ const fleetStatus = [
 
 export default function LogisticsDashboard() {
   const [commandCenter] = useState("Central Command");
+  useLiveLocation();
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-[#0a0118] via-[#1e0b3b] to-[#0f172a]">

@@ -13,9 +13,8 @@ import {
   Clock,
 } from "lucide-react";
 import { socket } from "@/lib/socket";
+import { useSocket } from "@/contexts/SocketContext";
 import { useAuth } from "@/app/providers/AuthProvider";
-import { useLiveLocation } from "@/hooks/useLiveLocation";
-import { useRescueChat } from "@/hooks/useRescueChat";
 import { useRouteUpdates } from "@/hooks/useRouteUpdates";
 
 /* ------------------ TYPES ------------------ */
@@ -61,11 +60,23 @@ const getDistanceMeters = (
 const getStatusStyle = (status: Team["status"]) => {
   switch (status) {
     case "available":
-      return { dot: "bg-green-400", text: "text-green-400", border: "border-green-500/30" };
+      return {
+        dot: "bg-green-400",
+        text: "text-green-400",
+        border: "border-green-500/30",
+      };
     case "on-mission":
-      return { dot: "bg-yellow-400", text: "text-yellow-400", border: "border-yellow-500/30" };
+      return {
+        dot: "bg-yellow-400",
+        text: "text-yellow-400",
+        border: "border-yellow-500/30",
+      };
     default:
-      return { dot: "bg-gray-400", text: "text-gray-400", border: "border-gray-500/30" };
+      return {
+        dot: "bg-gray-400",
+        text: "text-gray-400",
+        border: "border-gray-500/30",
+      };
   }
 };
 
@@ -84,21 +95,41 @@ export default function TeamCoordination() {
   const { user, loading: authLoading } = useAuth();
 
   // ✅ Custom hooks - SAFE with loading guards
-  const liveLocation = useLiveLocation(user?.role === "rescue" ? "rescue" : null);
-  const { position: myPosition } = liveLocation || {};
-  const chatData = useRescueChat(myPosition?.lat, myPosition?.lng);
-  const { messages = [], sendMessage: chatSendMessage } = chatData || {};
+
+  const {
+    notifications,
+    rescueMessages,
+    sendRescueMessage,
+    joinRescueChat,
+    route,
+  } = useSocket();
+
   const routeUpdates = useRouteUpdates();
 
   // ✅ Socket: Nearby teams (10km radius only)
   useEffect(() => {
-    if (!user?.id || user.role !== "rescue" || !myPosition?.lat || !myPosition?.lng) return;
+    if (
+      !user?.id ||
+      user.role !== "rescue" ||
+      !myPosition?.lat ||
+      !myPosition?.lng
+    )
+      return;
 
-    const handleRescueLocation = ({ userId, lat, lng }: { userId: string; lat: number; lng: number }) => {
+    const handleRescueLocation = ({
+      userId,
+      lat,
+      lng,
+    }: {
+      userId: string;
+      lat: number;
+      lng: number;
+    }) => {
       // Skip self
       if (userId === user.id) return;
 
-      const distKm = getDistanceMeters(myPosition.lat, myPosition.lng, lat, lng) / 1000;
+      const distKm =
+        getDistanceMeters(myPosition.lat, myPosition.lng, lat, lng) / 1000;
       if (distKm > 10) {
         setNearbyTeams((prev) => prev.filter((t) => t.userId !== userId));
         return;
@@ -113,7 +144,10 @@ export default function TeamCoordination() {
         distance: +distKm.toFixed(1),
         status: "available",
         members: 4 + Math.floor(Math.random() * 3),
-        lastUpdate: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        lastUpdate: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       };
 
       setNearbyTeams((prev) => {
@@ -125,7 +159,10 @@ export default function TeamCoordination() {
     };
 
     socket.on("rescueLocation", handleRescueLocation);
-    socket.emit("rescue:join-nearby", { lat: myPosition.lat, lng: myPosition.lng });
+    socket.emit("rescue:join-nearby", {
+      lat: myPosition.lat,
+      lng: myPosition.lng,
+    });
 
     return () => socket.off("rescueLocation", handleRescueLocation);
   }, [user, myPosition]);
@@ -136,7 +173,8 @@ export default function TeamCoordination() {
       setRouteData(route);
       setShowRoute(true);
     };
-    const handleRouteError = (error: any) => console.error("Route error:", error);
+    const handleRouteError = (error: any) =>
+      console.error("Route error:", error);
 
     socket.on("route:update", handleRouteUpdate);
     socket.on("route:error", handleRouteError);
@@ -157,7 +195,10 @@ export default function TeamCoordination() {
 
   // ✅ Lifecycle
   useEffect(() => setMounted(true), []);
-  useEffect(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
+  useEffect(
+    () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }),
+    [messages],
+  );
 
   // ✅ Event handlers - SAFE
   const handleSendMessage = () => {
@@ -194,14 +235,15 @@ export default function TeamCoordination() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#020617] via-[#0c4a6e] to-[#0f172a]">
         <div className="text-center text-white">
           <Users className="mx-auto h-12 w-12 text-cyan-400 animate-spin" />
-          <h2 className="mt-4 text-2xl font-bold">Loading Team Coordination...</h2>
+          <h2 className="mt-4 text-2xl font-bold">
+            Loading Team Coordination...
+          </h2>
           <p className="mt-2 text-gray-400">
-            {authLoading 
-              ? "Authenticating..." 
-              : !user 
-                ? "Please login first" 
-                : "Rescue team access only"
-            }
+            {authLoading
+              ? "Authenticating..."
+              : !user
+                ? "Please login first"
+                : "Rescue team access only"}
           </p>
         </div>
       </div>
@@ -234,7 +276,9 @@ export default function TeamCoordination() {
 
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="mb-6">
-          <h1 className="text-4xl font-bold text-white mb-2">Team Coordination Hub</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Team Coordination Hub
+          </h1>
           <p className="text-cyan-300">
             Real-time collaboration ({nearbyTeams.length} teams)
             {myPosition && (
@@ -265,9 +309,13 @@ export default function TeamCoordination() {
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${colors.dot} animate-pulse`} />
+                          <div
+                            className={`w-3 h-3 rounded-full ${colors.dot} animate-pulse`}
+                          />
                           <div>
-                            <h4 className="text-white font-semibold text-lg">{team.name}</h4>
+                            <h4 className="text-white font-semibold text-lg">
+                              {team.name}
+                            </h4>
                             <p className="text-gray-400 text-sm flex items-center gap-2">
                               <MapPin size={14} /> {team.location}
                             </p>
@@ -286,15 +334,21 @@ export default function TeamCoordination() {
                       <div className="grid grid-cols-3 gap-3 text-sm">
                         <div>
                           <p className="text-gray-500 text-xs">Distance</p>
-                          <p className="text-white font-semibold">{team.distance} km</p>
+                          <p className="text-white font-semibold">
+                            {team.distance} km
+                          </p>
                         </div>
                         <div>
                           <p className="text-gray-500 text-xs">Members</p>
-                          <p className="text-white font-semibold">{team.members}</p>
+                          <p className="text-white font-semibold">
+                            {team.members}
+                          </p>
                         </div>
                         <div>
                           <p className="text-gray-500 text-xs">Status</p>
-                          <p className={`${colors.text} font-semibold capitalize text-xs`}>
+                          <p
+                            className={`${colors.text} font-semibold capitalize text-xs`}
+                          >
                             {team.status.replace("-", " ")}
                           </p>
                         </div>
@@ -311,7 +365,9 @@ export default function TeamCoordination() {
                   <div className="text-center py-12 text-gray-400">
                     <Users className="mx-auto h-12 w-12 opacity-50 mb-4" />
                     <p>No nearby teams found</p>
-                    <p className="text-sm mt-1">Move around to discover teams</p>
+                    <p className="text-sm mt-1">
+                      Move around to discover teams
+                    </p>
                   </div>
                 )}
               </div>
@@ -325,10 +381,18 @@ export default function TeamCoordination() {
               </h3>
               <div className="rounded-xl overflow-hidden border border-white/5">
                 <SafeZoneMap
-                  userPosition={myPosition ? [myPosition.lat, myPosition.lng] : [28.6139, 77.209]}
+                  userPosition={
+                    myPosition
+                      ? [myPosition.lat, myPosition.lng]
+                      : [28.6139, 77.209]
+                  }
                   safeZones={teamsAsSafeZones}
                   selectedZone={
-                    selectedTeam ? teamsAsSafeZones.find((z) => z.id === selectedTeam.id) || null : null
+                    selectedTeam
+                      ? teamsAsSafeZones.find(
+                          (z) => z.id === selectedTeam.id,
+                        ) || null
+                      : null
                   }
                   onZoneClick={(zone) => {
                     const team = nearbyTeams.find((t) => t.id === zone.id);
@@ -343,8 +407,12 @@ export default function TeamCoordination() {
                 <div className="mt-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/40 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-cyan-400 text-sm font-semibold mb-1">Navigating to</p>
-                      <p className="text-white font-bold text-lg">{selectedTeam.name}</p>
+                      <p className="text-cyan-400 text-sm font-semibold mb-1">
+                        Navigating to
+                      </p>
+                      <p className="text-white font-bold text-lg">
+                        {selectedTeam.name}
+                      </p>
                       <p className="text-gray-400 text-sm">
                         {selectedTeam.location} • {selectedTeam.distance} km
                       </p>
@@ -373,7 +441,9 @@ export default function TeamCoordination() {
               <div>
                 <p className="text-white font-semibold">Nearby Team Chat</p>
                 <p className="text-xs text-gray-400">
-                  {messages.length > 0 ? `${messages.length} messages` : "Connect with teams"}
+                  {messages.length > 0
+                    ? `${messages.length} messages`
+                    : "Connect with teams"}
                 </p>
               </div>
             </div>
@@ -392,11 +462,15 @@ export default function TeamCoordination() {
                     }`}
                   >
                     {msg.senderId !== user.id && (
-                      <p className="text-xs opacity-70 mb-1 font-semibold">Team Member</p>
+                      <p className="text-xs opacity-70 mb-1 font-semibold">
+                        Team Member
+                      </p>
                     )}
                     <p>{msg.message || msg.text}</p>
                     <p className="text-[10px] opacity-70 text-right mt-1">
-                      {new Date(msg.timestamp || msg.time || Date.now()).toLocaleTimeString([], {
+                      {new Date(
+                        msg.timestamp || msg.time || Date.now(),
+                      ).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
@@ -434,7 +508,9 @@ export default function TeamCoordination() {
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-white">Navigate to Team</h3>
+                <h3 className="text-xl font-bold text-white">
+                  Navigate to Team
+                </h3>
                 <button
                   onClick={() => setShowModal(false)}
                   className="p-2 hover:bg-white/10 rounded-lg transition-colors"
@@ -444,9 +520,13 @@ export default function TeamCoordination() {
               </div>
               <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-3 h-3 rounded-full ${getStatusStyle(selectedTeam.status).dot} animate-pulse`} />
+                  <div
+                    className={`w-3 h-3 rounded-full ${getStatusStyle(selectedTeam.status).dot} animate-pulse`}
+                  />
                   <div>
-                    <p className="text-white font-bold text-lg">{selectedTeam.name}</p>
+                    <p className="text-white font-bold text-lg">
+                      {selectedTeam.name}
+                    </p>
                     <p className="text-gray-400 text-sm flex items-center gap-2">
                       <MapPin size={14} /> {selectedTeam.location}
                     </p>
@@ -455,15 +535,21 @@ export default function TeamCoordination() {
                 <div className="grid grid-cols-3 gap-3 text-sm">
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <p className="text-gray-500 text-xs mb-1">Distance</p>
-                    <p className="text-white font-bold">{selectedTeam.distance} km</p>
+                    <p className="text-white font-bold">
+                      {selectedTeam.distance} km
+                    </p>
                   </div>
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <p className="text-gray-500 text-xs mb-1">Members</p>
-                    <p className="text-white font-bold">{selectedTeam.members}</p>
+                    <p className="text-white font-bold">
+                      {selectedTeam.members}
+                    </p>
                   </div>
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <p className="text-gray-500 text-xs mb-1">Status</p>
-                    <p className={`${getStatusStyle(selectedTeam.status).text} font-bold capitalize text-xs`}>
+                    <p
+                      className={`${getStatusStyle(selectedTeam.status).text} font-bold capitalize text-xs`}
+                    >
                       {selectedTeam.status.replace("-", " ")}
                     </p>
                   </div>

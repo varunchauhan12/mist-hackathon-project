@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api from "@/lib/api/client"; // ✅ default axios instance
+import api from "@/lib/api/client"; 
 import { RescueUser } from "@/types";
 
 export function useRescueUsers() {
@@ -12,7 +12,7 @@ export function useRescueUsers() {
     const fetchRescueUsers = async () => {
       try {
         const res = await api.get("/users", {
-          params: { role: "rescue" }, // ✅ backend supports this
+          params: { role: "rescue" }, 
         });
 
         setRescueUsers(res.data?.data ?? []);
